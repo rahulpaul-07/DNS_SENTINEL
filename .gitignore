@@ -1,2 +1,27 @@
-build
+# Build & Distribution
+build/
+dist/
+bin/
+
+# Dependency Stores
+node_modules/
+venv/
+.env
+
+# Forensic Ledgers (Keep Local Only)
+*.db
+*.sqlite3
+backend/presentation_vault.db
+
+# OS Artifacts
 .DS_Store
+Thumbs.db
+
+# Python Caches
+**/__pycache__/
+*.pyc
+
+# Project State
+.gemini/
+.vscode/
+.idea/
