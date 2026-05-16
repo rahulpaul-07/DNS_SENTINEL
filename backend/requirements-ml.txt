@@ -1,0 +1,8 @@
+torch>=2.0.0
+torchvision
+torchaudio
+pandas
+numpy
+scikit-learn
+joblib
+matplotlib

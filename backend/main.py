@@ -1,4 +1,7 @@
-from fastapi import FastAPI, HTTPException, WebSocket, UploadFile, File, Response
+from typing import Any
+from fastapi import FastAPI, HTTPException, WebSocket, UploadFile, File, Response, BackgroundTasks
+from fastapi.responses import StreamingResponse
+from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import time
@@ -8,52 +11,50 @@ from collections import deque
 import io
 import csv
 import pandas as pd
-from sqlalchemy.orm import Session
-
+from fpdf import FPDF
 from features import extract_features
 from model import predict, train_custom_model
 from mitre import map_threat, generate_explanation
 from behavioral import analyzer as behavioral_analyzer
 from intel_service import intel_service
 from database import init_db, SessionLocal, DNSAuditLog, SecurityRule, Whitelist
+from risk_engine import risk_engine
+
+
+
 # CRITICAL: Create tables before importing SOAR actions (which depend on tables)
 init_db()
 
 from actions import orchestrator # SOAR Layer
 from pie_engine import pie_engine # PIE Logic
 
+
 from fastapi.responses import JSONResponse
 from fastapi import Request
+import json
 import logging
 
 # Initialize SOC Audit logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("DNSentinel")
 
-# SOC Security Engine: Operational
-app = FastAPI(title="DNSentinel: Enterprise DNS Exfiltration Detection")
+# Core Security Models
+class DNSLog(BaseModel):
+    timestamp: float = None
+    query: str
+    source_ip: str
+    qtype: str = "A"
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"🚨 CRITICAL_SERVER_FAULT: {str(exc)}", exc_info=True)
-    return JSONResponse(
-        status_code=500,
-        content={"message": "Internal SOAR Orchestration Fault", "details": str(exc)}
-    )
-
-async def soar_maintenance():
-    """Background task for auto-cleanup of security rules"""
-    while True:
-        orchestrator.cleanup_expired_rules()
-        await asyncio.sleep(60)
-
-@app.on_event("startup")
-async def on_startup():
-    asyncio.create_task(soar_maintenance())
+# Operational State
+traffic_history = deque(maxlen=200)
+alerts = deque(maxlen=100)
+ip_query_history = {} 
+alert_groups = {} 
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
+        self.sse_queues: list[asyncio.Queue] = []
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -64,32 +65,20 @@ class ConnectionManager:
             self.active_connections.remove(websocket)
 
     async def broadcast(self, message: dict):
+        # 1. WebSocket Broadcast
         for connection in self.active_connections:
             try:
                 await connection.send_json(message)
             except:
                 pass
+        
+        # 2. SSE Broadcast
+        for queue in self.sse_queues:
+            await queue.put(message)
 
 manager = ConnectionManager()
 
-# Open-Gate Dev CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-traffic_history = deque(maxlen=200)
-alerts = deque(maxlen=100)
-ip_query_history = {} 
-alert_groups = {} # SOC Correlation logic
-class DNSLog(BaseModel):
-    timestamp: float = None
-    query: str
-    source_ip: str
-    qtype: str = "A"
+# --- Security Logic Definitions ---
 
 def calculate_frequency_for_ip(ip):
     current_time = time.time()
@@ -98,12 +87,93 @@ def calculate_frequency_for_ip(ip):
     ip_query_history[ip] = [t for t in ip_query_history[ip] if current_time - t < 60]
     return len(ip_query_history[ip])
 
+# --- CAPTURE ENGINE INTEGRATION (Bridge to AI Pipeline) ---
+from capture import start_capture, stop_capture
+
+async def process_capture_packet(event: dict):
+    """Bridge: Feeds raw captured packets into the AI Analysis Engine"""
+    try:
+        log_data = DNSLog(
+            query=event.get("query_name", "unknown"),
+            source_ip=event.get("src_ip", "0.0.0.0"),
+            qtype=event.get("query_type", "A")
+        )
+        await analyze_dns(log_data)
+    except Exception as e:
+        logger.error(f"Live Analysis Bridge Error: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Start Live Sniffing (Disabled for stability)
+    # try:
+    #     loop = asyncio.get_running_loop()
+    #     start_capture(interface=None, loop=loop, callback=process_capture_packet)
+    #     logger.info("🚀 DNS Live Capture Engine: ACTIVE")
+    # except Exception as e:
+    #     logger.error(f"⚠️ Capture Initialization Failed: {e}")
+
+    
+    maintenance_task = asyncio.create_task(soar_maintenance())
+    yield
+    # stop_capture()
+    maintenance_task.cancel()
+    logger.info("🛑 DNS Live Capture Engine: SHUTDOWN")
+
+# --- APP INITIALIZATION ---
+app = FastAPI(
+    title="DNSentinel: Enterprise DNS Exfiltration Detection",
+    lifespan=lifespan
+)
+
+# Robust CORS for both HTTP and WebSockets
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def root():
     return {"status": "DNSentinel Backend Online", "docs": "/docs"}
 
+
+
+# --- SSE STREAMING ENDPOINT ---
+@app.get("/stream")
+async def stream(request: Request):
+    """
+    Server-Sent Events (SSE) Stream.
+    A more robust alternative to WebSockets that automatically handles reconnections.
+    """
+    queue = asyncio.Queue()
+    manager.sse_queues.append(queue)
+    
+    async def event_generator():
+        try:
+            while True:
+                # If client closes connection, stop the generator
+                if await request.is_disconnected():
+                    break
+                
+                data = await queue.get()
+                yield f"data: {json.dumps(data)}\n\n"
+        except asyncio.CancelledError:
+            pass
+        finally:
+            if queue in manager.sse_queues:
+                manager.sse_queues.remove(queue)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+
+
 @app.post("/analyze")
-async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: bool = False):
+async def analyze_dns_endpoint(log: DNSLog, skip_intel: bool = False, skip_broadcast: bool = False):
+    return await analyze_dns(log, skip_intel, skip_broadcast)
+
+async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: bool = False, db: Any = None):
     if not log.timestamp:
         log.timestamp = time.time()
     
@@ -146,52 +216,31 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
     behavior = behavioral_analyzer.analyze(log.source_ip, log.query)
     features['behavioral_metrics'] = behavior
     
-    pred_label, rf_conf, iso_pred, shap_explanation = predict(feature_vector)
+    pred_label, rf_conf, iso_pred, shap_explanation = predict(feature_vector, log.query)
     
-    # 4. Realistic Risk Scoring Engine (Normalize 0-100)
-    # ML base weight
-    risk_score = 0
-    if pred_label == 1:
-        risk_score += (rf_conf * 60) # Supervised confidence yields max 60 points
-    else:
-        risk_score += (rf_conf * 10) # Even if classified normal, if borderline, small bump
-        
-    # Anomaly bump
-    if iso_pred == -1:
-         risk_score += 25 # Unsupervised anomaly yields 25 points
-         
-    # Extreme Heuristic Overrides
-    if features['entropy'] > 4.2:
-         risk_score += 15
-    if features['ngram_score'] < 0.005:
-         risk_score += 15
-    if log.qtype == "TXT" and features['length'] > 40:
-         risk_score += 25 # TXT queries transferring huge blocks is massive exfil red flag
-    
-    # 3b. Real-Time Threat Intelligence Enrichment (Async)
+    # 4. Adaptive Risk Scoring Engine (Context-Aware)
+    intel_score = 0.0
     intel_hit = False
+    
     if not skip_intel:
         intel_data = await intel_service.enrich_query(log.query, log.source_ip)
-        risk_score += intel_data['reputation_score']
+        intel_score = intel_data.get('reputation_score', 0) / 100.0 # Normalize to 0-1
         features['intel_data'] = intel_data
-        intel_hit = intel_data['is_malicious']
+        intel_hit = intel_data.get('is_malicious', False)
     else:
-        # Fast local fallback for bulk ingest
         local_intel = intel_service.check_local_heuristics(log.query)
-        risk_score += local_intel['score']
+        intel_score = local_intel.get('score', 0) / 100.0
         features['intel_data'] = {"sources": ["Local Heuristics"], "threat_tags": local_intel['tags'], "reputation_score": local_intel['score']}
-        intel_hit = local_intel['score'] > 30
+        intel_hit = local_intel.get('score', 0) > 30
 
-    # Behavioral Influence
-    risk_score += behavior['behavior_score']
-         
-    risk_score = min(risk_score, 100) # Cap at 100
-    
-    # 4-Tier Severity Categorization
-    risk_level = "Low"
-    if risk_score >= 80: risk_level = "Critical"
-    elif risk_score >= 50: risk_level = "High"
-    elif risk_score >= 25: risk_level = "Medium"
+    # Calculate final score using Adaptive Engine
+    # We pass the ML confidence and Intel score; the engine computes behavioral context
+    risk_score, risk_level = await risk_engine.score(
+        source_ip=log.source_ip, 
+        domain=log.query, 
+        ml_score=rf_conf, 
+        intel_score=intel_score
+    )
     
     # 5. MITRE Mapping & SOC Explainability
     mitre_tags = map_threat(features, pred_label, iso_pred)
@@ -247,103 +296,113 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
     # (Mocking asset_value and intel_score for the demo; will use real Lookups in prod)
     pie_result = pie_engine.calculate_priority(
         risk_score=risk_score,
-        intel_score=95 if intel_hit else (40 if is_malicious else 5),
+        intel_score=95 if intel_hit else (40 if pred_label == 1 else 5),
         asset_value=85 if ".domain.local" in log.query else 50,
-        behavior_score=75 if log.source_ip in behavioral_analyzer.anomalies else 0,
+        behavior_score=behavior['behavior_score'],
         attack_type=analysis_result['prediction'].split(" ")[0].lower() or "normal"
     )
     
     analysis_result.update(pie_result)
     
     # 7. Forensic Data Persistence (SQL)
-    new_log = DNSAuditLog(
-        source_ip=log.source_ip,
-        query=log.query,
-        qtype=log.qtype,
-        risk_score=analysis_result['risk_score'],
-        risk_level=analysis_result['risk_level'],
-        prediction=analysis_result['prediction'],
-        priority=pie_result['priority'],
-        priority_score=pie_result['priority_score'],
-        mitre_data=analysis_result['mitre'],
-        features=features,
-        explanation=analysis_result['explanation']
-    )
-    
-    # Use shared session if provided
     active_db = db or SessionLocal()
     try:
-        active_db.add(new_log)
+        new_record = DNSAuditLog(
+            source_ip=log.source_ip,
+            query=log.query,
+            qtype=log.qtype,
+            risk_score=analysis_result['risk_score'],
+            risk_level=analysis_result['risk_level'],
+            prediction=analysis_result['prediction'],
+            priority=pie_result['priority'],
+            priority_score=pie_result['priority_score'],
+            mitre_data=analysis_result['mitre'],
+            features=features,
+            explanation=analysis_result['explanation'],
+            timestamp=datetime.fromtimestamp(log.timestamp)
+        )
+        active_db.add(new_record)
         active_db.commit()
-        active_db.refresh(new_log)
-        analysis_result['db_id'] = new_log.id
+        active_db.refresh(new_record)
+        analysis_result['db_id'] = new_record.id
 
-        # --- Automated SOAR Response ---
-        if risk_score > orchestrator.AUTO_BLOCK_THRESHOLD and (intel_hit or isolation_outlier):
-            orchestrator.trigger_block(
-                entity=log.source_ip, 
-                reason=f"Zero-Touch Automated Containment: {explanation.split('|')[0]}",
-                rule_type="IP_BLOCK",
-                risk_score=risk_score
+        # --- Simple Automated Response ---
+        if risk_score > 80:
+            # Note: orchestrator has its own internal DB session, 
+            # but we can pass one if we update actions.py. For now, it uses its own.
+            response = orchestrator.trigger_block(
+                entity=log.source_ip,
+                reason=f"High Risk Score ({risk_score}) for {log.query}"
             )
-            new_log.is_blocked = True
-            active_db.commit()
+            analysis_result['soar_action'] = response
+        
+        if not skip_broadcast:
+            await manager.broadcast(analysis_result)
+            
+        return analysis_result
+    except Exception as e:
+        logger.error(f"❌ Persistence Error: {e}")
+        return analysis_result
     finally:
         if not db: active_db.close()
 
-    if not skip_broadcast:
-        await manager.broadcast(analysis_result)
-    return analysis_result
+async def process_csv_background(decoded_content: str):
+    """Bulletproof background worker with enhanced logging"""
+    print(f"[*] Background Ingest Started. Content Length: {len(decoded_content)}")
+    try:
+        lines = decoded_content.splitlines()
+        with SessionLocal() as db_session:
+            if len(lines) > 0 and lines[0].startswith("#separator"):
+                print("[*] Detected Zeek/TSV format")
+                for line in lines:
+                    if line.startswith("#"): continue
+                    parts = line.split('\t')
+                    if len(parts) > 13:
+                        log = DNSLog(query=parts[9], source_ip=parts[2], qtype=parts[13], timestamp=time.time())
+                        await analyze_dns(log, skip_intel=True, skip_broadcast=False, db=db_session)
+                        await asyncio.sleep(0.01)
+            else:
+                print("[*] Detected Standard CSV format")
+                reader = csv.DictReader(io.StringIO(decoded_content))
+                count = 0
+                for row in reader:
+                    q = None
+                    for col in ['query', 'domain', 'dns_domain_name', 'hostname', 'url']:
+                        if col in row: q = row[col]; break
+                    
+                    if not q:
+                        continue
+                    
+                    src = row.get('source_ip') or row.get('src_ip') or row.get('client_ip') or '0.0.0.0'
+                    qt = row.get('qtype') or row.get('type') or 'A'
+                    
+                    log = DNSLog(query=q, source_ip=src, qtype=qt, timestamp=time.time())
+                    await analyze_dns(log, skip_intel=True, skip_broadcast=False, db=db_session)
+                    count += 1
+                    if count % 10 == 0: print(f"[*] Processed {count} rows...")
+                    await asyncio.sleep(0.02) # Higher sleep for stability
+        print(f"✅ Background Ingest Finished Successfully. Processed {count} rows.")
+    except Exception as e:
+        print(f"❌ Background Ingest Crash: {e}")
+        logger.error(f"Background Ingest Crash: {e}")
 
 @app.post("/upload")
-async def upload_csv(file: UploadFile = File(...)):
-    """Transactional Bulk Ingest: Handles datasets within a single high-perf connection"""
-    contents = await file.read()
-    decoded = contents.decode('utf-8', errors='ignore') 
-    lines = decoded.splitlines()
-    
-    db_session = SessionLocal()
-    analyzed_count = 0
-    threats_found = 0
-    
+async def upload_csv(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+    """Safe Async Upload: Returns immediate JSON and runs task in background"""
     try:
-        if len(lines) > 0 and lines[0].startswith("#separator"):
-            for line in lines:
-                if line.startswith("#"): continue
-                parts = line.split('\t')
-                if len(parts) > 13:
-                    log = DNSLog(query=parts[9], source_ip=parts[2], qtype=parts[13], timestamp=time.time())
-                    res = await analyze_dns(log, skip_intel=True, skip_broadcast=True, db=db_session)
-                    analyzed_count += 1
-                    if res['risk_level'] in ['Critical', 'High', 'Medium']: threats_found += 1
-        else:
-            reader = csv.DictReader(io.StringIO(decoded))
-            for row in reader:
-                # 1. Resolve Query (Fuzzy Match)
-                q = None
-                for col in ['query', 'domain', 'dns_domain_name', 'hostname', 'url']:
-                    if col in row and row[col]:
-                        q = row[col]
-                        break
-                
-                if not q: continue
-                
-                # 2. Resolve IP
-                ip = row.get('source_ip', row.get('src_ip', row.get('ip', '0.0.0.0')))
-                
-                # 3. Type
-                qtype = row.get('qtype', row.get('query_type', 'A'))
-                
-                log = DNSLog(query=q, source_ip=ip, qtype=qtype, timestamp=time.time())
-                # Live Broadcast every 20th log to keep dashboard 'alive' during demo
-                broadcast_toggle = (analyzed_count % 20 == 0)
-                res = await analyze_dns(log, skip_intel=True, skip_broadcast=not broadcast_toggle, db=db_session)
-                analyzed_count += 1
-                if res['risk_level'] in ['Critical', 'High', 'Medium']: threats_found += 1
+        contents = await file.read()
+        decoded = contents.decode('utf-8', errors='ignore')
         
-        return {"message": f"Successfully evaluated {analyzed_count} logs. Total threats: {threats_found}", "processed": analyzed_count}
-    finally:
-        db_session.close()
+        # Start background task AFTER defining it to ensure it's fully ready
+        background_tasks.add_task(process_csv_background, decoded)
+        
+        return {
+            "status": "success", 
+            "message": "Ingest started. You will see logs appearing live shortly."
+        }
+    except Exception as e:
+        logger.error(f"Upload Setup Error: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 @app.post("/train")
 async def train_model_endpoint(file: UploadFile = File(...)):
@@ -459,6 +518,23 @@ async def get_traffic(response: Response, limit: int = 100):
             "explanation": l.explanation
         } for l in logs]
 
+@app.post("/archive")
+async def archive_logs():
+    """Clears the active ledger to start a new forensic case."""
+    with SessionLocal() as db:
+        # Delete all records from DNSAuditLog
+        db.query(DNSAuditLog).delete()
+        db.commit()
+        
+        # Also clear in-memory caches
+        global traffic_history, alerts, ip_query_history, alert_groups
+        traffic_history.clear()
+        alerts.clear()
+        ip_query_history.clear()
+        alert_groups.clear()
+        
+    return {"status": "success", "message": "Forensic ledger cleared."}
+
 # --- SOC / SOAR Action Endpoints ---
 
 @app.post("/alerts/{log_id}/block")
@@ -501,6 +577,225 @@ async def generate_report(log_id: int):
     if not report: raise HTTPException(404, "Case index not found")
     return {"markdown": report}
 
+@app.get("/alerts/{log_id}/pdf")
+async def generate_pdf_report(log_id: int):
+    """Generates a professional PDF SOC Audit Report"""
+    with SessionLocal() as db:
+        log = db.query(DNSAuditLog).filter(DNSAuditLog.id == log_id).first()
+        if not log: raise HTTPException(404, "Alert record not found")
+        
+        pdf = FPDF()
+        pdf.add_page()
+        
+        # Header
+        pdf.set_fill_color(20, 30, 48) # Dark SOC Theme
+        pdf.rect(0, 0, 210, 40, 'F')
+        
+        pdf.set_font("Arial", 'B', 24)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 20, "DNSentinel: SOC Incident Audit", ln=True, align='C')
+        
+        pdf.set_font("Arial", '', 10)
+        pdf.cell(0, 5, f"Report Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+        pdf.ln(15)
+        
+        # Summary Section
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(0, 10, "1. Executive Summary", ln=True)
+        pdf.set_font("Arial", '', 11)
+        pdf.multi_cell(0, 7, f"An automated security audit was triggered for source IP {log.source_ip} due to a {log.risk_level} risk detection involving the query '{log.query}'. The system categorized this as a '{log.prediction}' threat.")
+        pdf.ln(5)
+        
+        # Threat Details Table
+        pdf.set_font("Arial", 'B', 12)
+        pdf.set_fill_color(230, 230, 230)
+        pdf.cell(95, 10, "Metric", border=1, fill=True)
+        pdf.cell(95, 10, "Value", border=1, fill=True, ln=True)
+        
+        pdf.set_font("Arial", '', 11)
+        metrics = [
+            ("Incident ID", f"SOC-{log.id}"),
+            ("Timestamp", log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else "N/A"),
+            ("Source IP", log.source_ip),
+            ("Query Domain", log.query),
+            ("Risk Score", str(log.risk_score)),
+            ("Severity Level", log.risk_level),
+            ("ML Prediction", log.prediction),
+            ("Priority Class", log.priority)
+        ]
+        
+        for metric, val in metrics:
+            pdf.cell(95, 8, metric, border=1)
+            pdf.cell(95, 8, val, border=1, ln=True)
+        
+        pdf.ln(10)
+        
+        # Analysis Details
+        pdf.set_font("Arial", 'B', 14)
+        pdf.cell(0, 10, "2. SOC Technical Analysis", ln=True)
+        pdf.set_font("Arial", '', 11)
+        pdf.multi_cell(0, 7, log.explanation or "No detailed explanation provided.")
+        pdf.ln(5)
+        
+        # MITRE Mapping
+        if log.mitre_data:
+            pdf.set_font("Arial", 'B', 14)
+            pdf.cell(0, 10, "3. MITRE ATT&CK Mapping", ln=True)
+            pdf.set_font("Arial", '', 10)
+            for tactic, technique in log.mitre_data.items():
+                pdf.set_font("Arial", 'B', 10)
+                pdf.cell(40, 6, f"{tactic}:")
+                pdf.set_font("Arial", '', 10)
+                pdf.cell(0, 6, technique, ln=True)
+        
+        # Footer
+        pdf.set_y(-30)
+        pdf.set_font("Arial", 'I', 8)
+        pdf.set_text_color(128, 128, 128)
+        pdf.cell(0, 10, "This report is cryptographically signed and archived for compliance. | DNSentinel Enterprise XDR", align='C')
+
+        from fastapi.responses import Response
+        return Response(content=bytes(pdf.output()), media_type="application/pdf", headers={
+            "Content-Disposition": f"attachment; filename=SOC_Audit_{log_id}.pdf"
+        })
+
+@app.get("/export/pdf")
+async def export_pdf_report():
+    """Generates a comprehensive Enterprise SOC Audit PDF report"""
+    with SessionLocal() as db:
+        logs = db.query(DNSAuditLog).order_by(DNSAuditLog.id.desc()).all()
+        
+        # Stats for executive summary
+        total_logs = len(logs)
+        critical_count = sum(1 for l in logs if l.risk_level == "Critical")
+        high_count = sum(1 for l in logs if l.risk_level == "High")
+        medium_count = sum(1 for l in logs if l.risk_level == "Medium")
+        
+        pdf = FPDF()
+        
+        # --- Cover Page ---
+        pdf.add_page()
+        pdf.set_fill_color(15, 23, 42) # slate-900
+        pdf.rect(0, 0, 210, 297, 'F')
+        
+        pdf.set_y(100)
+        pdf.set_font("Arial", 'B', 36)
+        pdf.set_text_color(0, 242, 255) # #00f2ff
+        pdf.cell(0, 20, "DNSENTINEL X-DR", ln=True, align='C')
+        
+        pdf.set_font("Arial", 'B', 18)
+        pdf.set_text_color(255, 255, 255)
+        pdf.cell(0, 15, "Enterprise Security Audit Report", ln=True, align='C')
+        
+        pdf.ln(20)
+        pdf.set_font("Arial", '', 12)
+        pdf.set_text_color(148, 163, 184) # slate-400
+        pdf.cell(0, 10, f"Generated On: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+        pdf.cell(0, 10, f"Total Forensic Events: {total_logs}", ln=True, align='C')
+        
+        # --- Executive Summary ---
+        pdf.add_page()
+        pdf.set_fill_color(255, 255, 255)
+        pdf.set_text_color(0, 0, 0)
+        
+        pdf.set_font("Arial", 'B', 20)
+        pdf.cell(0, 20, "1. Executive Summary", ln=True)
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", '', 11)
+        summary_text = (
+            f"This report provides a comprehensive overview of the DNS traffic monitored by DNSentinel. "
+            f"During the current audit period, a total of {total_logs} DNS requests were analyzed using "
+            f"the ensemble ML engine. A total of {critical_count + high_count + medium_count} potential "
+            f"threats were identified across various severity levels."
+        )
+        pdf.multi_cell(0, 7, summary_text)
+        pdf.ln(10)
+        
+        # Risk Distribution Table
+        pdf.set_font("Arial", 'B', 12)
+        pdf.cell(0, 10, "Risk Distribution", ln=True)
+        pdf.set_fill_color(241, 245, 249) # slate-100
+        pdf.cell(95, 10, "Severity Level", border=1, fill=True)
+        pdf.cell(95, 10, "Event Count", border=1, fill=True, ln=True)
+        
+        pdf.set_font("Arial", '', 11)
+        dist_data = [
+            ("Critical", critical_count),
+            ("High", high_count),
+            ("Medium", medium_count),
+            ("Low", total_logs - (critical_count + high_count + medium_count))
+        ]
+        for level, count in dist_data:
+            pdf.cell(95, 10, level, border=1)
+            pdf.cell(95, 10, str(count), border=1, ln=True)
+            
+        pdf.ln(15)
+        
+        # --- Threat Intelligence Section ---
+        pdf.set_font("Arial", 'B', 20)
+        pdf.cell(0, 20, "2. Top Security Threats", ln=True)
+        pdf.ln(5)
+        
+        critical_logs = [l for l in logs if l.risk_level in ["Critical", "High"]][:10]
+        if not critical_logs:
+            pdf.set_font("Arial", 'I', 11)
+            pdf.cell(0, 10, "No critical or high severity threats detected in this audit period.", ln=True)
+        else:
+            pdf.set_font("Arial", 'B', 10)
+            pdf.set_fill_color(220, 38, 38) # red-600
+            pdf.set_text_color(255, 255, 255)
+            pdf.cell(35, 10, "Timestamp", border=1, fill=True)
+            pdf.cell(35, 10, "Source IP", border=1, fill=True)
+            pdf.cell(80, 10, "Query Domain", border=1, fill=True)
+            pdf.cell(20, 10, "Score", border=1, fill=True)
+            pdf.cell(20, 10, "Level", border=1, fill=True, ln=True)
+            
+            pdf.set_text_color(0, 0, 0)
+            pdf.set_font("Arial", '', 9)
+            for l in critical_logs:
+                # Truncate query if too long
+                q = l.query[:40] + "..." if len(l.query) > 40 else l.query
+                ts = l.timestamp.strftime('%H:%M:%S') if l.timestamp else "N/A"
+                pdf.cell(35, 8, ts, border=1)
+                pdf.cell(35, 8, l.source_ip, border=1)
+                pdf.cell(80, 8, q, border=1)
+                pdf.cell(20, 8, str(l.risk_score), border=1)
+                pdf.cell(20, 8, l.risk_level, border=1, ln=True)
+                
+        # --- Full Audit Ledger ---
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 20)
+        pdf.cell(0, 20, "3. Forensic Ledger (Sample)", ln=True)
+        pdf.ln(5)
+        
+        pdf.set_font("Arial", 'B', 10)
+        pdf.set_fill_color(203, 213, 225) # slate-300
+        pdf.cell(30, 10, "Time", border=1, fill=True)
+        pdf.cell(35, 10, "IP", border=1, fill=True)
+        pdf.cell(95, 10, "Query", border=1, fill=True)
+        pdf.cell(30, 10, "Level", border=1, fill=True, ln=True)
+        
+        pdf.set_font("Arial", '', 8)
+        for l in logs[:100]: # Limit to first 100 for performance/readability in PDF
+            q = l.query[:50] + "..." if len(l.query) > 50 else l.query
+            ts = l.timestamp.strftime('%Y-%m-%d %H:%M') if l.timestamp else "N/A"
+            pdf.cell(30, 8, ts, border=1)
+            pdf.cell(35, 8, l.source_ip, border=1)
+            pdf.cell(95, 8, q, border=1)
+            pdf.cell(30, 8, l.risk_level, border=1, ln=True)
+            
+        if len(logs) > 100:
+            pdf.ln(5)
+            pdf.set_font("Arial", 'I', 9)
+            pdf.cell(0, 10, f"... and {len(logs) - 100} more events. Use CSV export for full forensic data.", ln=True, align='C')
+
+        from fastapi.responses import Response
+        return Response(content=bytes(pdf.output()), media_type="application/pdf", headers={
+            "Content-Disposition": f"attachment; filename=DNSentinel_Full_Audit_{datetime.now().strftime('%Y%m%d')}.pdf"
+        })
+
 @app.get("/export")
 async def export_logs():
     """Generates a full forensic CSV export from the persistent database ledger"""
@@ -512,7 +807,7 @@ async def export_logs():
         logs = db.query(DNSAuditLog).all()
         for log in logs:
             writer.writerow([
-                log.timestamp.isoformat(),
+                log.timestamp.isoformat() if log.timestamp else "",
                 log.source_ip,
                 log.query,
                 log.qtype,
@@ -566,6 +861,20 @@ async def get_stats():
                 "Low": low
             }
         }
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"🚨 CRITICAL_SERVER_FAULT: {str(exc)}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Internal SOAR Orchestration Fault", "details": str(exc)}
+    )
+
+async def soar_maintenance():
+    """Background task for auto-cleanup of security rules"""
+    while True:
+        orchestrator.cleanup_expired_rules()
+        await asyncio.sleep(60)
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

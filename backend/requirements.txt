@@ -13,3 +13,4 @@ python-dotenv
 aiohttp
 sqlalchemy
 shap
+scapy

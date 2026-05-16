@@ -177,3 +177,9 @@ body {
   50% { transform: scale(1.02); opacity: 0.2; }
   100% { transform: scale(1); opacity: 0.5; }
 }
+
+/* Live Intel Ticker */
+@keyframes tickerScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

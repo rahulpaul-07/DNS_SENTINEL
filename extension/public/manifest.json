@@ -1,0 +1,48 @@
+{
+  "name": "DNSentinel",
+  "version": "1.0.0",
+  "manifest_version": 3,
+  "description": "AI-powered DNS threat detection and exfiltration prevention.",
+  "permissions": [
+    "declarativeNetRequest",
+    "webRequest",
+    "storage",
+    "alarms",
+    "notifications",
+    "nativeMessaging",
+    "tabs",
+    "activeTab"
+  ],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "devtools_page": "devtools/devtools.html",
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "dnsentinel@utkarsh.local",
+      "strict_min_version": "121.0"
+    }
+  }
+}
