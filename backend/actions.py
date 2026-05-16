@@ -17,9 +17,6 @@ class ActionOrchestrator:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run # Safety Switch
         self.db = SessionLocal()
-        
-        # Configuration Thresholds
-        self.AUTO_BLOCK_THRESHOLD = 85.0 # Risk required for zero-touch containment
         self.DEFAULT_COOLDOWN_HOURS = 24
         
         # Whitelist (System-Critical Essentials)
@@ -97,7 +94,7 @@ class ActionOrchestrator:
             return False
 
     def trigger_block(self, entity: str, reason: str, rule_type: str = "IP_BLOCK", risk_score: float = 100.0) -> Dict:
-        """Unified blocking orchestrator (IP or Domain)"""
+        """Original simple blocking orchestrator"""
         if self._is_whitelisted(entity):
             return {"status": "DENIED", "message": f"{entity} is in MISSION-CRITICAL whitelist."}
 

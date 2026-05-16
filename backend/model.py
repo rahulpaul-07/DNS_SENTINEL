@@ -8,10 +8,13 @@ import os
 import csv
 from features import extract_features
 from explainability import get_shap_explanation
+import dga_model
+
 
 # Paths to serialized models
 RF_MODEL_PATH = os.path.join(os.path.dirname(__file__), "dns_rf_model_v5.joblib")
 ISO_MODEL_PATH = os.path.join(os.path.dirname(__file__), "dns_iso_model_v5.joblib")
+
 
 def train_base_model():
     # Load real Kaggle dataset to turbocharge the baseline model
@@ -110,19 +113,11 @@ def load_models():
         return train_base_model()
     return joblib.load(RF_MODEL_PATH), joblib.load(ISO_MODEL_PATH)
 
-def predict(features_array):
+def predict(features_array, domain: str = ""):
     """
-    Feeds features into the Ensemble Model (RF + Isolation Forest).
+    Feeds features into the Hybrid Ensemble Model (RF + Isolation Forest + DL DGA Model).
     """
     rf, iso = load_models()
-    
-    feature_arr = np.array([features_array])
-    
-    rf_label = rf.predict(feature_arr)[0]
-    probabilities = rf.predict_proba(feature_arr)[0]
-    rf_confidence = float(probabilities[rf_label])
-    
-    iso_prediction = iso.predict(feature_arr)[0]
     
     feature_names = [
         'entropy', 'length', 'subdomain_length', 'ngram_score', 'frequency', 
@@ -133,9 +128,34 @@ def predict(features_array):
         'entropy_to_length_ratio', 'high_entropy_flag', 'domain_complexity'
     ]
     
+    # Wrap in DataFrame to include feature names and suppress warnings
+    X = pd.DataFrame([features_array], columns=feature_names)
+    
+    rf_label = rf.predict(X)[0]
+    probabilities = rf.predict_proba(X)[0]
+    iso_prediction = iso.predict(X)[0]
+
+    # 3. Character-Level DL Model Prediction
+    dga_score = 0.0
+    if domain:
+        try:
+            dga_score = dga_model.predict(domain)
+        except Exception as e:
+            print(f"[!] DGA Model Prediction Error: {e}")
+
+    # Hybrid Ensemble: Average RF Malicious Probability and DL DGA Score
+    rf_prob_malicious = float(probabilities[1]) # Probability of class 1 (Malicious)
+    
+    # Ensemble Score (Averaged)
+    ensemble_score = (rf_prob_malicious + dga_score) / 2.0
+    
+    # Final Label based on ensemble score (threshold 0.5)
+    final_label = 1 if ensemble_score > 0.5 else 0
+    final_confidence = ensemble_score if final_label == 1 else 1 - ensemble_score
+
     shap_text = ""
     # Only run heavy SHAP explainer if classified as malicious or anomaly, for performance
-    if rf_label == 1 or iso_prediction == -1:
+    if final_label == 1 or iso_prediction == -1:
         shap_text = get_shap_explanation(rf, features_array, feature_names)
         
-    return int(rf_label), rf_confidence, int(iso_prediction), shap_text
+    return int(final_label), float(final_confidence), int(iso_prediction), shap_text

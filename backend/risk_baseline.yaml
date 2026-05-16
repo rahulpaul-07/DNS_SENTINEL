@@ -1,0 +1,6 @@
+sensitivity:
+  k_factor: 2.0
+weights:
+  behavior: 0.3
+  intel: 0.2
+  ml: 0.5

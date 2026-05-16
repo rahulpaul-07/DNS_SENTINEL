@@ -1,27 +1,43 @@
-# Build & Distribution
-build/
-dist/
-bin/
-
-# Dependency Stores
-node_modules/
-venv/
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.so
 .env
+venv/
+env/
+*.egg-info/
+dist/
+build/
 
-# Forensic Ledgers (Keep Local Only)
+# SQLite Database (contains real data - do not commit)
 *.db
-*.sqlite3
-backend/presentation_vault.db
+*.sqlite
 
-# OS Artifacts
+# ML Model files (large binary files)
+*.pt
+*.pkl
+*.joblib
+
+# Test / temp files
+backend/dummy.csv
+backend/test_*.py
+backend/patch_dashboard.py
+
+# Node.js
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.log
+npm-debug.log*
+
+# OS Files
 .DS_Store
 Thumbs.db
 
-# Python Caches
-**/__pycache__/
-*.pyc
-
-# Project State
-.gemini/
+# IDE
 .vscode/
 .idea/
+*.swp

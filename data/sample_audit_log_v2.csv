@@ -1,0 +1,13 @@
+timestamp,source_ip,domain,query_length,entropy,numeric_ratio,tld,subdomain_depth,query_count,risk_score,label,attack_type
+2026-05-15T22:30:00,10.0.0.5,github.com,10,2.1,0.0,com,1,5,2,benign,normal
+2026-05-15T22:31:12,10.0.0.8,stackoverflow.com,17,2.5,0.0,com,1,10,3,benign,normal
+2026-05-15T22:32:45,192.168.1.50,v2x9d8f7s6d5f4.onion.ly,22,5.1,0.4,ly,2,100,92,malicious,DGA
+2026-05-15T22:33:10,192.168.1.51,chunk1.data-exfil-staging.net,30,4.8,0.2,net,3,250,88,malicious,exfiltration
+2026-05-15T22:34:55,10.0.0.12,internal-service.local,21,2.8,0.0,local,2,8,1,benign,normal
+2026-05-15T22:35:21,192.168.1.55,dnscat2.tunneling-test.xyz,28,5.4,0.3,xyz,2,400,98,malicious,tunneling
+2026-05-15T22:36:42,127.0.0.1,localhost.controller,20,2.0,0.0,controller,1,1,0,benign,normal
+2026-05-15T22:37:15,192.168.1.60,microsoft-update.com.security-check.info,40,5.6,0.5,info,3,150,94,malicious,phishing
+2026-05-15T22:38:01,10.0.0.25,aws.amazon.com,14,2.4,0.0,com,2,12,4,benign,normal
+2026-05-15T22:39:33,192.168.1.65,z9x8c7v6b5n4m3.xyz,18,5.2,0.4,xyz,1,120,91,malicious,DGA
+2026-05-15T22:40:12,8.8.8.8,dns.google,10,2.2,0.0,google,1,1000,0,benign,normal
+2026-05-15T22:41:45,192.168.1.70,hidden-c2-channel.org,20,4.5,0.1,org,1,300,87,malicious,C2

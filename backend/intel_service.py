@@ -33,7 +33,8 @@ class IntelService:
                 host=os.getenv("REDIS_HOST", "localhost"),
                 port=int(os.getenv("REDIS_PORT", 6379)),
                 db=int(os.getenv("REDIS_DB", 0)),
-                decode_responses=True
+                decode_responses=True,
+                socket_connect_timeout=1 # Critical: Prevent long hang during import
             )
             # Test connection
             self.redis_client.ping()
@@ -41,6 +42,7 @@ class IntelService:
         except Exception as e:
             logger.warning(f"⚠️ Redis unavailable, running without cache: {e}")
             self.redis_client = None
+
 
         # Local Risk Factors (Heuristic Fallback)
         self.malicious_tlds = {'.xyz', '.top', '.pw', '.bid', '.monster', '.icu', '.cloud'}
