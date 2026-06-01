@@ -8,7 +8,14 @@ import os
 import csv
 from features import extract_features
 from explainability import get_shap_explanation
-import dga_model
+
+# dga_model requires torch - imported lazily so server starts even without it
+dga_model = None
+try:
+    import dga_model
+except ImportError:
+    pass  # torch not available; DGA deep-learning score will be skipped (dga_score = 0.0)
+
 
 
 # Paths to serialized models
