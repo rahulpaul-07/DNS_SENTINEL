@@ -16,4 +16,3 @@ shap
 scapy
 fpdf2
 pyyaml
-torch --index-url https://download.pytorch.org/whl/cpu
