@@ -1,5 +1,13 @@
-const API_BASE = "/api";
-const WS_BASE = `ws://${window.location.host}/ws`;
+// In production (Vercel), VITE_API_URL points to the Render backend (e.g. https://dnsentinel.onrender.com)
+// In development, we use '/api' which is proxied by vite.config.js to http://127.0.0.1:8001
+const PROD_API = import.meta.env.VITE_API_URL || '';
+const API_BASE = PROD_API ? `${PROD_API}` : '/api';
+
+// WebSocket: wss:// in production, ws:// in development
+const WS_BASE = PROD_API
+  ? `${PROD_API.replace(/^http/, 'ws')}/ws`
+  : `ws://${window.location.host}/ws`;
+
 const SSE_BASE = `${API_BASE}/stream`;
 
 export const fetchAlerts = async () => {

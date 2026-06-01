@@ -5,13 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DNSentinel</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { margin: 0; padding: 0; background: #020617; color: white; font-family: 'Inter', sans-serif; width: 420px; height: 560px; overflow-x: hidden; }
+        body { 
+            margin: 0; padding: 0; 
+            background: #020617; 
+            color: white; 
+            font-family: 'Inter', sans-serif; 
+            width: 420px; 
+            height: 560px; 
+            overflow-x: hidden; 
+        }
         #root { width: 100%; height: 100%; }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
-    <script type="module" src="./popup.jsx"></script>
+    <script type="module" src="popup.js"></script>
 </body>
 </html>

@@ -105,7 +105,7 @@ def train_evaluate_pipeline():
     
     # Evaluation
     print("\n" + "="*50)
-    print("📈 FINAL MODEL EVALUATION (RANDOM FOREST)")
+    print("FINAL MODEL EVALUATION (RANDOM FOREST)")
     print("="*50)
     y_pred = best_model.predict(X_test)
     
@@ -123,7 +123,7 @@ def train_evaluate_pipeline():
     print(f"[*] Saved Confusion Matrix plot to confusion_matrix.png")
     
     # Explainability (Feature Importance)
-    print("\n🧠 FEATURE IMPORTANCES:")
+    print("\nFEATURE IMPORTANCES:")
     importances = best_model.feature_importances_
     for feature, imp in sorted(zip(X.columns, importances), key=lambda x: x[1], reverse=True):
         print(f"  - {feature}: {imp*100:.2f}%")
@@ -195,7 +195,7 @@ if __name__ == "__main__":
     
     # 2. Test Edge Cases Inference
     print("\n" + "="*50)
-    print("🧪 INFERENCE EDGE CASE TESTING")
+    print("INFERENCE EDGE CASE TESTING")
     print("="*50)
     
     tests = [

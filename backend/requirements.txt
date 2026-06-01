@@ -14,3 +14,5 @@ aiohttp
 sqlalchemy
 shap
 scapy
+fpdf2
+torch

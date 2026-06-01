@@ -62,7 +62,7 @@ It consists of three tightly integrated components:
 
 ### 🔌 Chrome Extension
 - **Passive DNS Monitor** — captures all browser DNS queries without modifying traffic.
-- **Instant PIE Score** — local Priority Intelligence Engine gives risk feedback in `<5ms`.
+- **Instant PIE Score** — local Priority Intelligence Engine gives risk feedback in `<5ms`. See [PIE_SCORE.md](file:///c:/Users/Utkarsh%20Dubey/.gemini/antigravity/DNSentinel/PIE_SCORE.md) for the prioritization mathematical engine formulation.
 - **Real-Time Notifications** — threat alerts appear as browser notifications with risk score and category.
 - **Protocol Filtering** — internal Chrome extension IDs and noise filtered automatically.
 

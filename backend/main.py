@@ -292,6 +292,8 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
     
     traffic_history.append(analysis_result)
     
+    detailed_explanation = analysis_result.get("explanation", "")
+
     # 6B. Calculate PIE (Priority Intelligence Engine) Result
     # (Mocking asset_value and intel_score for the demo; will use real Lookups in prod)
     pie_result = pie_engine.calculate_priority(
@@ -302,7 +304,15 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
         attack_type=analysis_result['prediction'].split(" ")[0].lower() or "normal"
     )
     
+    pie_explanation = pie_result.pop("explanation", "")
     analysis_result.update(pie_result)
+    
+    if detailed_explanation and pie_explanation:
+        analysis_result["explanation"] = f"{detailed_explanation} | {pie_explanation}"
+    elif detailed_explanation:
+        analysis_result["explanation"] = detailed_explanation
+    else:
+        analysis_result["explanation"] = pie_explanation
     
     # 7. Forensic Data Persistence (SQL)
     active_db = db or SessionLocal()

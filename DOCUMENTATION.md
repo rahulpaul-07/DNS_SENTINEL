@@ -18,5 +18,5 @@ To retrain the model on your custom logs:
 ## 🤖 AI Logic (Extension)
 The extension uses a **Hybrid Inference Mode**:
 1. **Llama 3 (Groq)**: Provides high-level semantic reasoning and explainability.
-2. **PIE Engine (Math)**: Provides low-latency structural risk assessment (Entropy, Digits).
+2. **PIE Engine (Math)**: Provides low-latency structural risk assessment (Entropy, Digits). See [PIE_SCORE.md](file:///c:/Users/Utkarsh%20Dubey/.gemini/antigravity/DNSentinel/PIE_SCORE.md) for the complete mathematical scoring logic and engine specifications.
 3. **Local LSTM**: Provides sequence-based deep analysis for known exfiltration patterns.

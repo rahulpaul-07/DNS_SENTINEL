@@ -41,11 +41,14 @@ const Panel = () => {
   const getTierBadge = (tier) => {
       const colors = {
           'CRITICAL': 'bg-red-500 text-white',
+          'HIGH': 'bg-red-500 text-white',
           'BLOCK': 'bg-orange-500 text-white',
+          'MEDIUM': 'bg-orange-500 text-white',
           'ALERT': 'bg-yellow-500 text-black',
-          'MONITOR': 'bg-blue-500 text-white'
+          'MONITOR': 'bg-blue-500 text-white',
+          'LOW': 'bg-blue-500 text-white'
       };
-      return <span className={`px-2 py-0.5 rounded text-xs font-bold ${colors[tier]}`}>{tier}</span>;
+      return <span className={`px-2 py-0.5 rounded text-xs font-bold ${colors[tier] || 'bg-slate-500 text-white'}`}>{tier}</span>;
   };
 
   return (

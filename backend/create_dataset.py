@@ -24,14 +24,7 @@ def generate_dga():
         dga.append(domain)
     return dga
 
-def create_dataset():
-    benign = generate_benign()
-    dga = generate_dga()
-    
-    df = pd.DataFrame({
-        'domain': benign + dga,
-        'label': [0] * len(benign) + [1] * len(dga)
-    })
+def create_dataset():>
     
     df = df.sample(frac=1).reset_index(drop=True)
     df.to_csv('dga_dataset.csv', index=False)
