@@ -4,8 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime, timedelta
 import os
 
-# Presentation Vault Configuration (Single-Use Forensic Store)
-DB_PATH = "c:/Users/Utkarsh Dubey/.gemini/antigravity/DNSentinel/backend/presentation_vault.db"
+# Database stored next to this file - works on any OS (Windows, Linux/Render)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "presentation_vault.db")
 engine = create_engine(
     f"sqlite:///{DB_PATH}", 
     connect_args={"check_same_thread": False},
