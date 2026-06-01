@@ -15,4 +15,4 @@ sqlalchemy
 shap
 scapy
 fpdf2
-torch
+torch --index-url https://download.pytorch.org/whl/cpu
