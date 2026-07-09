@@ -909,6 +909,60 @@ async def export_logs():
     
     return {"csv": output.getvalue()}
 
+
+@app.get("/export/alerts.csv")
+async def export_alerts_csv(risk_level: str = None):
+    """Stream a downloadable CSV of the audit ledger.
+
+    Unlike /export (which returns JSON-wrapped text), this returns a real
+    text/csv attachment browsers download directly. Optionally filter to a
+    single risk_level (Low|Medium|High|Critical).
+    """
+    level = None
+    if risk_level:
+        level = risk_level.strip().capitalize()
+        if level not in VALID_RISK_LEVELS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"invalid risk_level '{risk_level}'; expected one of "
+                f"{sorted(VALID_RISK_LEVELS)}",
+            )
+
+    def row_iter():
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(
+            ["timestamp", "source_ip", "query", "qtype",
+             "risk_score", "risk_level", "prediction", "mitre_ids"]
+        )
+        yield buffer.getvalue()
+        buffer.seek(0); buffer.truncate(0)
+
+        with SessionLocal() as db:
+            q = db.query(DNSAuditLog)
+            if level:
+                q = q.filter(DNSAuditLog.risk_level == level)
+            for log in q.order_by(DNSAuditLog.id.desc()).all():
+                writer.writerow([
+                    log.timestamp.isoformat() if log.timestamp else "",
+                    log.source_ip,
+                    log.query,
+                    log.qtype,
+                    log.risk_score,
+                    log.risk_level,
+                    log.prediction,
+                    ", ".join(log.mitre_data.keys()) if log.mitre_data else "",
+                ])
+                yield buffer.getvalue()
+                buffer.seek(0); buffer.truncate(0)
+
+    filename = f"dnsentinel_alerts_{datetime.now():%Y%m%d_%H%M%S}.csv"
+    return StreamingResponse(
+        row_iter(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
 @app.post("/archive")
 async def archive_and_clear():
     """Performs a full forensic wipe of the active dashboard state"""
