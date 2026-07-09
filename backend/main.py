@@ -4,6 +4,13 @@ from fastapi.responses import StreamingResponse
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+try:
+    from pydantic import field_validator  # pydantic v2
+    _PYDANTIC_V2 = True
+except ImportError:  # pragma: no cover - pydantic v1 fallback
+    from pydantic import validator as field_validator
+    _PYDANTIC_V2 = False
+from config import settings
 import time
 import asyncio
 from datetime import datetime
@@ -35,15 +42,32 @@ import json
 import logging
 
 # Initialize SOC Audit logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL, logging.INFO))
 logger = logging.getLogger("DNSentinel")
 
 # Core Security Models
 class DNSLog(BaseModel):
     timestamp: float = None
     query: str
-    source_ip: str
+    source_ip: str = "0.0.0.0"
     qtype: str = "A"
+
+    @field_validator("query")
+    @classmethod
+    def _validate_query(cls, v):
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("query must not be empty")
+        if len(v) > settings.MAX_QUERY_LENGTH:
+            raise ValueError(
+                f"query exceeds max length of {settings.MAX_QUERY_LENGTH} characters"
+            )
+        return v.lower()
+
+    @field_validator("qtype")
+    @classmethod
+    def _validate_qtype(cls, v):
+        return (v or "A").strip().upper()[:10]
 
 # Operational State
 traffic_history = deque(maxlen=200)
@@ -128,7 +152,7 @@ app = FastAPI(
 # Robust CORS for both HTTP and WebSockets
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -137,6 +161,33 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"status": "DNSentinel Backend Online", "docs": "/docs"}
+
+
+@app.get("/health")
+async def health():
+    """Lightweight liveness probe for load balancers and uptime checks."""
+    db_ok = True
+    try:
+        with SessionLocal() as db:
+            db.query(DNSAuditLog).limit(1).all()
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.warning(f"Health check DB probe failed: {exc}")
+        db_ok = False
+    status_code = 200 if db_ok else 503
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if db_ok else "degraded",
+            "database": "up" if db_ok else "down",
+            "version": settings.VERSION,
+        },
+    )
+
+
+@app.get("/version")
+async def version():
+    """Report the running application version and name."""
+    return {"app": settings.APP_NAME, "version": settings.VERSION}
 
 
 
