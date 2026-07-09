@@ -7,6 +7,9 @@
   <img src="https://img.shields.io/badge/SQLite-Embedded-003B57?style=for-the-badge&logo=sqlite&logoColor=white"/>
   <img src="https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white"/>
   <img src="https://img.shields.io/badge/ML-22--Vector_Ensemble-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
+  <br/>
+  <!-- Update OWNER to your GitHub username after pushing -->
+  <img src="https://github.com/OWNER/DNSENTINEL/actions/workflows/ci.yml/badge.svg" alt="CI"/>
 </p>
 
 > **Real-time DNS Exfiltration Detection, Forensic Analysis & SOAR Orchestration — at the level of CrowdStrike & Elastic Security.**
@@ -136,6 +139,19 @@ Open your browser to `http://localhost:5173`
 
 ---
 
+### 5. Run the Tests
+
+```bash
+cd backend
+pip install pytest
+pytest -q          # feature, risk-engine and ML-contract tests
+```
+
+The frontend build is verified with `npm run build`. Both suites run
+automatically in CI (see `.github/workflows/ci.yml`) on every push and PR.
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -177,6 +193,8 @@ DNSentinel/
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET` | `/health` | Liveness probe (DB check, returns 503 if degraded) |
+| `GET` | `/version` | Running application name and version |
 | `POST` | `/analyze` | Analyze a single DNS query |
 | `GET` | `/stream` | SSE live telemetry stream |
 | `GET` | `/alerts` | Paginated alert history |
