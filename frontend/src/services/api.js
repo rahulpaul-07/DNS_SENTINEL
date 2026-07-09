@@ -10,9 +10,19 @@ const WS_BASE = PROD_API
 
 const SSE_BASE = `${API_BASE}/stream`;
 
-export const fetchAlerts = async () => {
-    const response = await fetch(`${API_BASE}/alerts`);
+export const fetchAlerts = async ({ riskLevel = null, limit = 50, offset = 0 } = {}) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (riskLevel) params.set("risk_level", riskLevel);
+    const response = await fetch(`${API_BASE}/alerts?${params.toString()}`);
     return response.json();
+};
+
+// Returns a direct download URL for the streaming CSV export (optionally filtered).
+export const getExportCsvUrl = (riskLevel = null) => {
+    const params = new URLSearchParams();
+    if (riskLevel) params.set("risk_level", riskLevel);
+    const qs = params.toString();
+    return `${API_BASE}/export/alerts.csv${qs ? `?${qs}` : ""}`;
 };
 
 export const fetchStats = async () => {
