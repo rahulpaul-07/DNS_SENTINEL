@@ -151,18 +151,26 @@ def predict(features_array, domain: str = ""):
             print(f"[!] DGA Model Prediction Error: {e}")
 
     # Hybrid Ensemble: Average RF Malicious Probability and DL DGA Score
-    rf_prob_malicious = float(probabilities[1]) # Probability of class 1 (Malicious)
-    
-    # Ensemble Score (Averaged)
-    ensemble_score = (rf_prob_malicious + dga_score) / 2.0
-    
-    # Final Label based on ensemble score (threshold 0.5)
-    final_label = 1 if ensemble_score > 0.5 else 0
-    final_confidence = ensemble_score if final_label == 1 else 1 - ensemble_score
+    rf_prob_malicious = float(probabilities[1])  # Probability of class 1 (Malicious)
+
+    # Ensemble the RF probability with the deep-learning DGA score ONLY when that
+    # model is actually available. Previously we always averaged with dga_score,
+    # which is 0.0 whenever torch isn't installed -- that halved every score so the
+    # 0.5 threshold could never be crossed (everything looked benign) and inverted
+    # the downstream risk ranking. Fall back to the RF probability alone otherwise.
+    if dga_model is not None and dga_score > 0.0:
+        malicious_probability = (rf_prob_malicious + dga_score) / 2.0
+    else:
+        malicious_probability = rf_prob_malicious
+
+    # Final label based on the malicious probability (threshold 0.5)
+    final_label = 1 if malicious_probability > 0.5 else 0
 
     shap_text = ""
     # Only run heavy SHAP explainer if classified as malicious or anomaly, for performance
     if final_label == 1 or iso_prediction == -1:
         shap_text = get_shap_explanation(rf, features_array, feature_names)
-        
-    return int(final_label), float(final_confidence), int(iso_prediction), shap_text
+
+    # Return the MALICIOUS PROBABILITY (0-1, higher = more malicious) so the risk
+    # engine receives a true threat signal instead of label-confidence.
+    return int(final_label), float(malicious_probability), int(iso_prediction), shap_text
