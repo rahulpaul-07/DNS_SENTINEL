@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/ML-22--Vector_Ensemble-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white"/>
   <br/>
   <!-- Update OWNER to your GitHub username after pushing -->
-  <img src="https://github.com/OWNER/DNSENTINEL/actions/workflows/ci.yml/badge.svg" alt="CI"/>
+  <img src="https://github.com/rahulpaul-07/DNS_SENTINEL/actions/workflows/ci.yml/badge.svg" alt="CI"/>
 </p>
 
 > **Real-time DNS Exfiltration Detection, Forensic Analysis & SOAR Orchestration — at the level of CrowdStrike & Elastic Security.**
