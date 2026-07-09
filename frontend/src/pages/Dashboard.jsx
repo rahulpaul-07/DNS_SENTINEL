@@ -156,6 +156,14 @@ const Dashboard = () => {
     window.open(getExportCsvUrl(riskLevel), "_blank");
   };
 
+  // Toggle column sort direction; drives the sortedTraffic memo and <Th/> headers.
+  const handleSort = (key) => {
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }));
+  };
+
   const handleBlockAction = async (log) => {
     if(!log.db_id) return alert("Persistence sync pending...");
     try {
