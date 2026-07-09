@@ -535,12 +535,42 @@ async def train_model_endpoint(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Valid risk levels for filtering (matches RiskEngine tiers).
+VALID_RISK_LEVELS = {"Low", "Medium", "High", "Critical"}
+
+
 @app.get("/alerts")
-async def get_alerts(response: Response, limit: int = 50):
-    """Fetches alerts from the ledger. Cache-Control: no-store enforces freshness."""
+async def get_alerts(
+    response: Response,
+    limit: int = 50,
+    offset: int = 0,
+    risk_level: str = None,
+):
+    """Fetches alerts from the ledger with optional filtering and pagination.
+
+    Query params:
+      - limit:      max rows to return (1-500, default 50)
+      - offset:     rows to skip, for pagination (default 0)
+      - risk_level: filter to a single tier (Low|Medium|High|Critical)
+    """
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    limit = max(1, min(limit, 500))
+    offset = max(0, offset)
     with SessionLocal() as db:
-        logs = db.query(DNSAuditLog).filter(DNSAuditLog.risk_level != "Low").order_by(DNSAuditLog.id.desc()).limit(limit).all()
+        query = db.query(DNSAuditLog)
+        if risk_level:
+            level = risk_level.strip().capitalize()
+            if level not in VALID_RISK_LEVELS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"invalid risk_level '{risk_level}'; expected one of "
+                    f"{sorted(VALID_RISK_LEVELS)}",
+                )
+            query = query.filter(DNSAuditLog.risk_level == level)
+        else:
+            # Default alert view excludes benign Low-risk noise.
+            query = query.filter(DNSAuditLog.risk_level != "Low")
+        logs = query.order_by(DNSAuditLog.id.desc()).offset(offset).limit(limit).all()
         return [{
             "db_id": l.id,
             "timestamp": (l.timestamp.isoformat() if l.timestamp and hasattr(l.timestamp, 'isoformat') else str(l.timestamp or "")),
