@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { connectSSE, fetchAlerts, fetchStats, uploadDataset, trainModel, downloadLogs } from '../services/api';
+import { connectSSE, fetchAlerts, fetchStats, uploadDataset, trainModel, downloadLogs, getExportCsvUrl } from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   AreaChart, Area, Cell, PieChart, Pie, CartesianGrid
@@ -150,6 +150,12 @@ const Dashboard = () => {
     window.open("/api/export/pdf", "_blank");
   };
 
+  const exportAlertsCSV = () => {
+    // Streaming CSV download from the backend (respects the active severity filter).
+    const riskLevel = filterSeverity && filterSeverity !== 'All' ? filterSeverity : null;
+    window.open(getExportCsvUrl(riskLevel), "_blank");
+  };
+
   const handleBlockAction = async (log) => {
     if(!log.db_id) return alert("Persistence sync pending...");
     try {
@@ -287,6 +293,10 @@ const Dashboard = () => {
                 <button onClick={exportAuditPDF} className="flex items-center gap-3 px-5 py-3 bg-slate-900 border border-white/10 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-all">
                   <FileText size={16}/>
                   DNS Audit
+                </button>
+                <button onClick={exportAlertsCSV} className="flex items-center gap-3 px-5 py-3 bg-slate-900 border border-white/10 rounded-xl text-[11px] font-bold uppercase tracking-widest text-slate-400 hover:text-white hover:border-white/20 transition-all">
+                  <Download size={16}/>
+                  Export CSV
                 </button>
              </div>
           </div>
