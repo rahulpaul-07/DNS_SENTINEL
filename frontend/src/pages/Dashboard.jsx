@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { connectSSE, fetchAlerts, fetchStats, uploadDataset, trainModel, downloadLogs, getExportCsvUrl } from '../services/api';
+import { connectSSE, fetchAlerts, fetchStats, uploadDataset, getExportCsvUrl } from '../services/api';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, 
   AreaChart, Area, Cell, PieChart, Pie, CartesianGrid
@@ -24,17 +24,15 @@ const Dashboard = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSeverity, setFilterSeverity] = useState("All");
-  const [isUploading, setIsUploading] = useState(false);
+  const [, setIsUploading] = useState(false);
   const [selectedLog, setSelectedLog] = useState(null); 
-  const [isTraining, setIsTraining] = useState(false);
   const [manualQuery, setManualQuery] = useState("");
   const [manualIp, setManualIp] = useState("10.0.0.99");
-  const [manualResult, setManualResult] = useState(null);
+  const [, setManualResult] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [reportMarkdown, setReportMarkdown] = useState(null);
   const [viewMode, setViewMode] = useState("Triage"); // Triage vs Topology
   const [sortConfig, setSortConfig] = useState({ key: 'timestamp', direction: 'desc' });
-  const [clipToast, setClipToast] = useState(null);
   const [liveClock, setLiveClock] = useState(new Date());
 
   const fileInputRef = useRef(null);
@@ -57,14 +55,6 @@ const Dashboard = () => {
     const t = setInterval(() => setLiveClock(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  // Feature: Click-to-copy helper
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setClipToast(text);
-      setTimeout(() => setClipToast(null), 2000);
-    });
-  };
 
   useEffect(() => {
     fetchAlerts().then(setAlerts).catch(console.error);
@@ -542,22 +532,6 @@ const Dashboard = () => {
         )}
       </AnimatePresence>
 
-     {/* Clipboard Toast Notification */}
-     <AnimatePresence>
-       {clipToast && (
-         <motion.div
-           initial={{ opacity: 0, y: 20, scale: 0.95 }}
-           animate={{ opacity: 1, y: 0, scale: 1 }}
-           exit={{ opacity: 0, y: 20, scale: 0.95 }}
-           className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[999] flex items-center gap-3 px-5 py-3 bg-slate-900 border border-[#00f2ff]/30 rounded-2xl shadow-2xl shadow-cyan-500/10"
-         >
-           <div className="w-2 h-2 rounded-full bg-emerald-400"/>
-           <span className="text-[11px] font-bold text-white font-mono">Copied:</span>
-           <span className="text-[11px] text-[#00f2ff] font-mono">{clipToast}</span>
-         </motion.div>
-       )}
-     </AnimatePresence>
-
      {/* Keyboard Shortcut Hint */}
      <div className="fixed bottom-8 right-8 z-[998] flex items-center gap-2 opacity-30 hover:opacity-80 transition-opacity pointer-events-none">
        <kbd className="px-2 py-1 bg-slate-800 border border-white/10 rounded text-[10px] font-mono text-slate-400">/</kbd>
@@ -937,6 +911,7 @@ const TopologyView = ({ traffic, alerts, onSelectNode }) => {
        }
     });
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- derive graph state once per data change
     setNodes(allNodes);
     setLinks(allLinks);
   }, [traffic, alerts]);

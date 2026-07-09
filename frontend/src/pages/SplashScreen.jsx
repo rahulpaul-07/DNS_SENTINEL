@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const BOOT_SEQUENCE = [
   { text: "INITIALIZING KERNEL MODULES...", delay: 0 },
@@ -17,7 +17,6 @@ const SplashScreen = ({ onComplete }) => {
   const [progress, setProgress] = useState(0);
   const [phase, setPhase] = useState('boot'); // boot | logo | exit
   const [scanLine, setScanLine] = useState(0);
-  const animRef = useRef(null);
 
   useEffect(() => {
     // Boot sequence text lines
