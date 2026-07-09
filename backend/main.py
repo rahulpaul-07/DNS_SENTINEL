@@ -267,7 +267,7 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
     behavior = behavioral_analyzer.analyze(log.source_ip, log.query)
     features['behavioral_metrics'] = behavior
     
-    pred_label, rf_conf, iso_pred, shap_explanation = predict(feature_vector, log.query)
+    pred_label, mal_prob, iso_pred, shap_explanation = predict(feature_vector, log.query)
     
     # 4. Adaptive Risk Scoring Engine (Context-Aware)
     intel_score = 0.0
@@ -285,11 +285,11 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
         intel_hit = local_intel.get('score', 0) > 30
 
     # Calculate final score using Adaptive Engine
-    # We pass the ML confidence and Intel score; the engine computes behavioral context
+    # Pass the ML malicious probability (not label-confidence) so higher = riskier.
     risk_score, risk_level = await risk_engine.score(
         source_ip=log.source_ip, 
         domain=log.query, 
-        ml_score=rf_conf, 
+        ml_score=mal_prob,
         intel_score=intel_score
     )
     
@@ -304,7 +304,7 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
         "source_ip": log.source_ip,
         "features": features,
         "prediction": "Malicious" if (pred_label == 1 or risk_level in ["Critical", "High", "Medium"]) else "Normal",
-        "confidence": rf_conf,
+        "confidence": round(mal_prob if pred_label == 1 else 1 - mal_prob, 3),
         "risk_score": round(risk_score, 1),
         "risk_level": risk_level,
         "isolation_outlier": iso_pred == -1,
