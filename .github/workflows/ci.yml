@@ -32,6 +32,9 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
+      - name: Train models (reproducibility check)
+        run: python -m train
+
       - name: Run tests
         run: pytest -q
 

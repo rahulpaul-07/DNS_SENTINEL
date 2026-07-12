@@ -48,3 +48,11 @@ Thumbs.db
 backend/firewall_blocklist.json
 backend/seed_res.txt
 data/*.log
+
+# Generated model artifacts (regenerate with: python -m backend.train)
+backend/models/*.joblib
+!backend/models/metrics.json
+!backend/models/README.md
+
+# Stray runtime risk config generated at repo root (canonical copy is backend/risk_baseline.yaml)
+/risk_baseline.yaml

@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-07-12T18:06:55+00:00",
+  "trainer": "backend/train.py",
+  "seed": 42,
+  "dataset": {
+    "path": "data/dns_exfiltration_dataset.csv",
+    "sha256": "fa2bd999c4af073daebdb6041ac4be7eb2cd16a175cc8350ad6bd5fd54a2802a",
+    "n_samples": 700,
+    "class_balance": {
+      "0": 350,
+      "1": 350
+    }
+  },
+  "features": {
+    "count": 22,
+    "order": [
+      "entropy",
+      "length",
+      "subdomain_length",
+      "ngram_score",
+      "frequency",
+      "consonant_ratio",
+      "digit_ratio",
+      "unique_char",
+      "vowels_consonant_ratio",
+      "max_continuous_numeric_len",
+      "max_continuous_alphabet_len",
+      "max_continuous_consonants_len",
+      "max_continuous_same_char",
+      "upper_count",
+      "lower_count",
+      "special_count",
+      "labels",
+      "labels_max",
+      "labels_average",
+      "entropy_to_length_ratio",
+      "high_entropy_flag",
+      "domain_complexity"
+    ]
+  },
+  "models": {
+    "random_forest": {
+      "params": {
+        "n_estimators": 300,
+        "max_depth": 30,
+        "min_samples_split": 10,
+        "random_state": 42
+      },
+      "artifact": "dns_rf_model.joblib"
+    },
+    "isolation_forest": {
+      "params": {
+        "contamination": 0.15,
+        "random_state": 42
+      },
+      "artifact": "dns_iso_model.joblib"
+    }
+  },
+  "metrics": {
+    "holdout_20pct": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "roc_auc": 1.0
+    },
+    "stratified_5fold_cv": {
+      "accuracy": 1.0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    }
+  },
+  "environment": {
+    "python": "3.10.12",
+    "scikit_learn": "1.7.2",
+    "numpy": "2.2.6"
+  },
+  "note": "In-distribution metrics are near-perfect because the bundled dataset is near-linearly separable (an entropy-only depth-1 stump scores ~0.99 F1). See MODEL_CARD.md for honest cross-dataset generalization results and reproduce with: python -m backend.evaluate"
+}
