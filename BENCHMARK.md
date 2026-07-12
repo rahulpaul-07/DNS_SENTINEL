@@ -81,3 +81,30 @@ feed), not to change the model.
   per family rather than hidden behind a single headline accuracy.
 - A clear, data-driven path to improvement, with the harness already able to
   consume recognized public datasets.
+## Running on real public data
+
+The harness accepts recognized public datasets — download them (no account
+needed for most), convert to the `domain,label[,family]` format with the bundled
+converter, and run. Sources:
+
+- **Benign:** Tranco — <https://tranco-list.eu/top-1m.csv.zip> (`rank,domain`).
+- **DGA (+benign, single file):** `chrmor/DGA_domains_dataset` on GitHub — a labeled
+  CSV of 25 DGA families + Alexa benign.
+- **DGA feeds:** Netlab 360 `dga.txt`, Bambenek `dga-feed.txt`.
+
+```bash
+# Option A — a combined labeled CSV (e.g. chrmor: columns domain,class,subclass)
+python -m backend.benchmarks.build_public_benchmark \
+    --input dga_domains_full.csv --domain-col domain \
+    --label-col class --benign-value legit --family-col subclass
+python -m backend.benchmarks.run_benchmark --benchmark data/real_benchmark.csv
+
+# Option B — Tranco benign + a DGA .txt feed
+python -m backend.benchmarks.build_public_benchmark \
+    --benign-file top-1m.csv --malicious-file dga.txt --max 20000
+python -m backend.benchmarks.run_benchmark --benchmark data/real_benchmark.csv
+```
+
+`run_benchmark` reports per-family recall for whatever families appear in the
+data, so on the real feeds you get recall broken out by actual DGA family
+(cryptolocker, ramnit, suppobox, matsnu, ...).
