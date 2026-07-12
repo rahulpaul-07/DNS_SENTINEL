@@ -60,3 +60,5 @@ backend/models/*.joblib
 # Generated benchmark (reproduce with: python -m backend.benchmarks.generate_benchmark)
 data/dga_benchmark.csv
 backend/.venv/
+data/dga_domains_full.csv
+data/real_benchmark.csv
