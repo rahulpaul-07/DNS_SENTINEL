@@ -96,6 +96,18 @@ and in a SOC, false-positive rate, not accuracy, governs analyst alert fatigue.
 Closing that gap (public benchmarks, per-DGA-family recall, threshold
 calibration) is the documented roadmap.
 
+**Family-stratified benchmark (12,000 domains, 4 DGA families — see [BENCHMARK.md](BENCHMARK.md)):**
+
+| View | Precision | Recall | F1 | ROC-AUC |
+| --- | --- | --- | --- | --- |
+| Cross-domain (bundled → benchmark) | 0.70 | 0.92 | 0.79 | 0.92 |
+| In-benchmark (80/20 split) | 0.96 | 0.83 | 0.89 | 0.94 |
+
+Per-family recall exposes the honest frontier: **random / arithmetic / hex DGAs = 1.00**,
+but **dictionary DGAs = 0.67** and benign false-positives are high when trained only on the
+small bundled set — a training-data coverage gap (precision recovers to 0.96 once trained on
+representative data). Reproduce and read the full analysis in [BENCHMARK.md](BENCHMARK.md).
+
 ---
 
 ## 🏗️ Architecture
