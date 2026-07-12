@@ -123,7 +123,7 @@ export const ContainmentView = () => {
                 <Shield size={18}/>
                 <h4 className="text-xs font-bold uppercase tracking-widest">L3/L4 Firewall Rules</h4>
              </div>
-             <p className="text-[10px] text-slate-500 leading-relaxed uppercase">Malicious source IPs are blocked via kernel-level IPTABLES filters. Access from these addresses is severed across all protocols.</p>
+             <p className="text-[10px] text-slate-500 leading-relaxed uppercase">Malicious source IPs are blocked via generated firewall rules (iptables), with automatic 24-hour expiry to prevent disruption.</p>
           </div>
           <div className="glass-panel p-8 space-y-4 border-l-4 border-l-blue-500">
              <div className="flex items-center gap-3 text-blue-500 mb-2">
