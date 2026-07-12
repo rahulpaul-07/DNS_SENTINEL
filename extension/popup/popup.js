@@ -4,7 +4,7 @@ function parseExplanation(rawText, score = 0) {
     if (!rawText || rawText === "[Local Engine] Analyzing structural features...") {
         return { friendly: "Analyzing structural and security patterns...", technical: "", pie: "" };
     }
-    
+
     if (score < 50) {
         return {
             friendly: "This website behaves normally. Our machine learning models evaluated its name and found no malicious patterns.",
@@ -12,12 +12,12 @@ function parseExplanation(rawText, score = 0) {
             pie: ""
         };
     }
-    
+
     const parts = rawText.split('|').map(p => p.trim());
     let threatText = "";
     let shapText = "";
     let pieText = "";
-    
+
     parts.forEach(part => {
         if (part.includes("PIE Score")) {
             pieText = part;
@@ -27,7 +27,7 @@ function parseExplanation(rawText, score = 0) {
             threatText = threatText ? (threatText + " " + part) : part;
         }
     });
-    
+
     let friendly = "";
     if (threatText.includes("Standard benign DNS") || threatText.includes("Normal traffic structures")) {
         friendly = "This website behaves normally. Our machine learning models evaluated its name and found no malicious patterns.";
@@ -45,14 +45,14 @@ function parseExplanation(rawText, score = 0) {
         if (threatText.includes("long DNS label")) {
             bulletPoints.push("The web address contains excessively long parts, which is a known method for sneaking data out.");
         }
-        
+
         if (bulletPoints.length > 0) {
             friendly = bulletPoints.join(" ");
         } else {
             friendly = "Our machine learning model detected suspicious structural deviations that may represent an active threat.";
         }
     }
-    
+
     return {
         friendly,
         technical: threatText + (shapText ? " | " + shapText : ""),
@@ -95,7 +95,7 @@ function determineTier(score) {
 function triggerLocalCalculation(domain, url, tabId) {
     const features = extractFeatures(domain);
     const scoreData = calculateFallbackScore(features, domain);
-    
+
     activeTabEvent = {
         id: "temp_" + Date.now(),
         domain,
@@ -122,13 +122,13 @@ function detectActiveTab() {
                 if (url.protocol.startsWith('http')) {
                     activeTabDomain = url.hostname;
                     isActiveTabSystem = false;
-                    
-                    const existing = events.find(ev => 
-                        ev.domain === activeTabDomain || 
-                        activeTabDomain.endsWith('.' + ev.domain) || 
+
+                    const existing = events.find(ev =>
+                        ev.domain === activeTabDomain ||
+                        activeTabDomain.endsWith('.' + ev.domain) ||
                         ev.domain.endsWith('.' + activeTabDomain)
                     );
-                    
+
                     if (existing) {
                         activeTabEvent = existing;
                         render();
@@ -168,7 +168,7 @@ function loadEvents() {
             getReq.onsuccess = () => {
                 const all = getReq.result || [];
                 events = all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 20);
-                
+
                 let blocked = 0, alerts = 0, max = 0;
                 all.forEach(ev => {
                     if (['BLOCK', 'CRITICAL', 'HIGH'].includes(ev.tier)) blocked++;
@@ -176,7 +176,7 @@ function loadEvents() {
                     if (ev.final_score > max) max = ev.final_score;
                 });
                 stats = { total: all.length, blocked, alerts, maxScore: max };
-                
+
                 detectActiveTab();
             };
         }
@@ -190,14 +190,14 @@ chrome.runtime.onMessage.addListener((msg) => {
         if (index !== -1) {
             const oldEvent = events[index];
             events[index] = msg.payload;
-            
+
             if (['BLOCK', 'CRITICAL', 'HIGH'].includes(oldEvent.tier)) stats.blocked--;
             if (['ALERT', 'BLOCK', 'CRITICAL', 'HIGH', 'MEDIUM'].includes(oldEvent.tier)) stats.alerts--;
-            
+
             if (['BLOCK', 'CRITICAL', 'HIGH'].includes(msg.payload.tier)) stats.blocked++;
             if (['ALERT', 'BLOCK', 'CRITICAL', 'HIGH', 'MEDIUM'].includes(msg.payload.tier)) stats.alerts++;
             if (msg.payload.final_score > stats.maxScore) stats.maxScore = msg.payload.final_score;
-            
+
             if (selectedEvent && selectedEvent.id === msg.payload.id) {
                 selectedEvent = msg.payload;
             }
@@ -342,7 +342,7 @@ function render() {
 
                 const toast = document.createElement('div');
                 toast.style.cssText = `position:fixed;bottom:20px;left:20px;background:#10b981;color:white;padding:0.875rem 1.25rem;border-radius:8px;font-size:13px;font-weight:bold;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1)`;
-                toast.textContent = `✓ Settings saved successfully`;
+                toast.textContent = `Settings saved successfully`;
                 document.body.appendChild(toast);
                 setTimeout(() => toast.remove(), 2000);
 
@@ -366,7 +366,7 @@ function render() {
         // Detail view with inline styles
         const detail = document.createElement('div');
         detail.style.cssText = `position:absolute;inset:0;background:rgba(9,15,30,0.97);backdrop-filter:blur(20px);z-index:20;display:flex;flex-direction:column;height:100%;border-radius:8px;overflow:hidden`;
-        
+
         // Header
         const header = document.createElement('div');
         header.style.cssText = `padding:1rem;border-bottom:1px solid rgba(255,255,255,0.05);display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.8);backdrop-filter:blur(12px);z-index:10`;
@@ -382,7 +382,7 @@ function render() {
         // Content
         const content = document.createElement('div');
         content.style.cssText = `padding:1.25rem;flex:1;overflow-y:auto;font-size:0.875rem;display:flex;flex-direction:column;gap:1.25rem`;
-        
+
         const tierColor = (selectedEvent.tier === 'CRITICAL' || selectedEvent.tier === 'HIGH') ? '#ef4444' :
                           (selectedEvent.tier === 'BLOCK' || selectedEvent.tier === 'MEDIUM') ? '#f97316' :
                           selectedEvent.tier === 'ALERT' ? '#eab308' : '#10b981';
@@ -390,11 +390,11 @@ function render() {
         // Risk Score
         const scoreBox = document.createElement('div');
         scoreBox.style.cssText = `display:flex;flex-direction:column;gap:0.5rem;background:linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.5) 100%);padding:1.25rem;border-radius:0.75rem;border:1px solid rgba(255,255,255,0.05);border-left:4px solid ${tierColor};position:relative;overflow:hidden;box-shadow:0 10px 20px rgba(0,0,0,0.3);flex-shrink:0`;
-        
+
         const glowColor = (selectedEvent.tier === 'CRITICAL' || selectedEvent.tier === 'HIGH') ? 'rgba(239,68,68,0.06)' :
                           (selectedEvent.tier === 'BLOCK' || selectedEvent.tier === 'MEDIUM') ? 'rgba(249,115,22,0.04)' :
                           'rgba(34,211,238,0.03)';
-                          
+
         scoreBox.innerHTML = `
             <div style="position:absolute;inset:0;background:${glowColor};pointer-events:none;z-index:0"></div>
             <div style="display:flex;justify-content:space-between;align-items:center;position:relative;z-index:1">
@@ -419,7 +419,7 @@ function render() {
         breakdown.style.cssText = `background:linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.5) 100%);padding:1.25rem;border-radius:0.75rem;border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;gap:1.25rem;box-shadow:0 10px 20px rgba(0,0,0,0.3);flex-shrink:0`;
         breakdown.innerHTML = `
             <div style="font-size:11px;font-weight:bold;color:#475569;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid rgba(255,255,255,0.03);padding-bottom:0.5rem">AI Risk Indicators</div>
-            
+
             <div style="display:flex;flex-direction:column;gap:0.375rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
                     <span style="color:#e2e8f0;font-weight:600">Name Randomness (Entropy)</span>
@@ -432,7 +432,7 @@ function render() {
                 </div>
                 <p style="margin:0;font-size:10.5px;color:#64748b;line-height:1.4">Checks how chaotic the address letters are. High randomness is a major indicator of hacker-controlled networks.</p>
             </div>
-            
+
             <div style="display:flex;flex-direction:column;gap:0.375rem">
                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px">
                     <span style="color:#e2e8f0;font-weight:600">Number Ratio (Digits)</span>
@@ -452,14 +452,14 @@ function render() {
         const parsed = parseExplanation(selectedEvent.shap_reason, selectedEvent.final_score);
         const reasoning = document.createElement('div');
         reasoning.style.cssText = `background:linear-gradient(135deg, rgba(30,41,59,0.3) 0%, rgba(15,23,42,0.5) 100%);padding:1.25rem;border-radius:0.75rem;border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;gap:0.75rem;box-shadow:0 10px 20px rgba(0,0,0,0.3);flex-shrink:0`;
-        
+
         let reasoningHTML = `
             <div>
                 <div style="font-size:11px;font-weight:bold;color:#475569;text-transform:uppercase;letter-spacing:0.08em;border-bottom:1px solid rgba(255,255,255,0.03);padding-bottom:0.5rem;margin-bottom:0.5rem">AI Assessment</div>
                 <p style="font-size:12.5px;color:#f1f5f9;line-height:1.55;margin:0;font-weight:500">${parsed.friendly}</p>
             </div>
         `;
-        
+
         if (parsed.pie) {
             reasoningHTML += `
                 <div style="padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:0.25rem">
@@ -471,7 +471,7 @@ function render() {
                 </div>
             `;
         }
-        
+
         if (parsed.technical) {
             reasoningHTML += `
                 <details style="padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.03)">
@@ -482,17 +482,17 @@ function render() {
                 </details>
             `;
         }
-        
+
         reasoning.innerHTML = reasoningHTML;
         content.appendChild(reasoning);
 
         // Footer with buttons
         const footer = document.createElement('div');
         footer.style.cssText = `border-top:1px solid rgba(255,255,255,0.05);background:rgba(15,23,42,0.9);padding:1rem;display:flex;gap:0.75rem;z-index:10`;
-        
+
         const allowBtn = document.createElement('button');
         allowBtn.style.cssText = `flex:1;background:#059669;color:white;font-weight:bold;padding:0.625rem 1rem;border-radius:0.5rem;border:none;cursor:pointer;font-size:14px;transition:all 0.2s;box-shadow:0 0 10px rgba(5,150,105,0.2)`;
-        allowBtn.textContent = '✓ Allow';
+        allowBtn.textContent = 'Allow';
         allowBtn.onmouseover = () => {
             allowBtn.style.background = '#047857';
             allowBtn.style.boxShadow = '0 0 15px rgba(4,120,87,0.4)';
@@ -508,7 +508,7 @@ function render() {
                 if (response && response.status === "allowed") {
                     const toast = document.createElement('div');
                     toast.style.cssText = `position:fixed;bottom:20px;left:20px;background:#10b981;color:white;padding:0.875rem 1.25rem;border-radius:8px;font-size:13px;font-weight:bold;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1)`;
-                    toast.textContent = `✓ ${selectedEvent.domain} allowed`;
+                    toast.textContent = `${selectedEvent.domain} allowed`;
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 2000);
                 }
@@ -519,7 +519,7 @@ function render() {
 
         const blockBtn = document.createElement('button');
         blockBtn.style.cssText = `flex:1;background:#dc2626;color:white;font-weight:bold;padding:0.625rem 1rem;border-radius:0.5rem;border:none;cursor:pointer;font-size:14px;transition:all 0.2s;box-shadow:0 0 10px rgba(220,38,38,0.2)`;
-        blockBtn.textContent = '✕ Block';
+        blockBtn.textContent = 'Block';
         blockBtn.onmouseover = () => {
             blockBtn.style.background = '#b91c1c';
             blockBtn.style.boxShadow = '0 0 15px rgba(185,28,28,0.4)';
@@ -535,7 +535,7 @@ function render() {
                 if (response && response.status === "blocked") {
                     const toast = document.createElement('div');
                     toast.style.cssText = `position:fixed;bottom:20px;left:20px;background:#dc2626;color:white;padding:0.875rem 1.25rem;border-radius:8px;font-size:13px;font-weight:bold;z-index:1000;box-shadow:0 10px 25px rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.1)`;
-                    toast.textContent = `✕ ${selectedEvent.domain} blocked`;
+                    toast.textContent = `${selectedEvent.domain} blocked`;
                     document.body.appendChild(toast);
                     setTimeout(() => toast.remove(), 2000);
                 }
@@ -550,7 +550,7 @@ function render() {
         detail.appendChild(header);
         detail.appendChild(content);
         detail.appendChild(footer);
-        
+
         header.querySelector('#closeDetail').onclick = () => {
             selectedEvent = null;
             render();
@@ -653,7 +653,7 @@ function render() {
             events.forEach(ev => {
                 const item = document.createElement('div');
                 item.style.cssText = `background:rgba(30,41,59,0.25);backdrop-filter:blur(8px);cursor:pointer;padding:0.75rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between;font-size:14px;transition:all 0.25s cubic-bezier(0.4, 0, 0.2, 1)`;
-                
+
                 const hoverBorder = ev.final_score > 60 ? 'rgba(239,68,68,0.2)' : 'rgba(34,211,238,0.2)';
                 item.onmouseover = () => {
                     item.style.background = 'rgba(30,41,59,0.45)';
@@ -671,7 +671,7 @@ function render() {
                     selectedEvent = ev;
                     render();
                 };
-                
+
                 const dotColor = getTierColor(ev.tier);
                 item.innerHTML = `
                     <div style="display:flex;align-items:center;gap:0.75rem;overflow:hidden">
@@ -704,7 +704,7 @@ function render() {
                 <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
             </button>
         `;
-        
+
         footer.querySelector('#dashboardBtn').onclick = () => window.open('http://localhost:5173');
         footer.querySelector('#dashboardBtn').onmouseover = () => {
             footer.querySelector('#dashboardBtn').style.color = '#6366f1';

@@ -1,4 +1,4 @@
-# 🛡️ DNSentinel — DNS Threat Detection & SOC Platform
+# DNSentinel — DNS Threat Detection & SOC Platform
 
 ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?style=for-the-badge&logo=fastapi&logoColor=white)
@@ -13,13 +13,13 @@
 > that scores each query, streams alerts over SSE, and drives SOAR-style
 > containment with a human in the loop.
 
-**🔴 Live demo:** [dns-sentinel.vercel.app](https://dns-sentinel.vercel.app) ·
-**📊 Model metrics:** [MODEL_CARD.md](MODEL_CARD.md) ·
-**🔍 Reproduce them:** [`python -m backend.evaluate`](#-reproducible-evaluation)
+**Live demo:** [dns-sentinel.vercel.app](https://dns-sentinel.vercel.app) ·
+**Model metrics:** [MODEL_CARD.md](MODEL_CARD.md) ·
+**Reproduce them:** [`python -m backend.evaluate`](#reproducible-evaluation)
 
 ---
 
-## 📖 Overview
+## Overview
 
 DNSentinel classifies DNS traffic in real time to surface threats like DGA
 (Domain Generation Algorithm) activity, DNS tunneling, and exfiltration. It is
@@ -27,10 +27,10 @@ built as three integrated tiers plus a network sensor:
 
 | Component | Technology | Purpose |
 | --- | --- | --- |
-| 🌐 **Zeek sensor** | Zeek scripting *(third-party, attributed)* | Line-rate DNS-exfiltration signals from network taps |
-| 🖥️ **Backend API** | Python · FastAPI · scikit-learn | Feature extraction, ML inference, SSE streaming, SOAR, PDF reports |
-| 📊 **SOC dashboard** | Vite · React · Recharts | Analyst triage, topology, threat hunting, containment audit |
-| 🔌 **Chrome extension** | Manifest V3 | Browser-level DNS telemetry capture |
+| **Zeek sensor** | Zeek scripting *(third-party, attributed)* | Line-rate DNS-exfiltration signals from network taps |
+| **Backend API** | Python · FastAPI · scikit-learn | Feature extraction, ML inference, SSE streaming, SOAR, PDF reports |
+| **SOC dashboard** | Vite · React · Recharts | Analyst triage, topology, threat hunting, containment audit |
+| **Chrome extension** | Manifest V3 | Browser-level DNS telemetry capture |
 
 > **Attribution:** the Zeek `exfil_detect` sensor is a reused open-source
 > package (BSD-3, © saiiman) integrated as the tap tier — see
@@ -38,7 +38,7 @@ built as three integrated tiers plus a network sensor:
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 **Detection**
 - 22-feature vector per query: Shannon entropy, English-bigram likelihood,
@@ -66,7 +66,7 @@ built as three integrated tiers plus a network sensor:
 
 ---
 
-## 📊 Model Performance (measured, reproducible)
+## Model Performance (measured, reproducible)
 
 All numbers below are produced by `backend/evaluate.py` — **not** hand-typed —
 and never evaluate on the training set. Full methodology in
@@ -79,7 +79,7 @@ and never evaluate on the training set. Full methodology in
 | Exfiltration (n=700) | 1.000 | 1.000 | 1.000 | 1.000 |
 | DGA (n=1,000) | 0.997 | 0.994 | 1.000 | 0.997 |
 
-> ⚠️ **Read these honestly.** The bundled datasets are small and near-linearly
+> **Read these honestly.** The bundled datasets are small and near-linearly
 > separable — an *entropy-only depth-1 stump* already scores F1 ≈ 0.99. So
 > ~100% here reflects **dataset simplicity, not production accuracy.** The
 > number that actually matters is generalization:
@@ -110,7 +110,7 @@ representative data). Reproduce and read the full analysis in [BENCHMARK.md](BEN
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -135,7 +135,7 @@ representative data). Reproduce and read the full analysis in [BENCHMARK.md](BEN
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 **Prerequisites:** Python 3.10+, Node.js 18+, Google Chrome (for the extension).
 
@@ -157,7 +157,7 @@ cd frontend && npm install && npm run dev # http://localhost:5173
 
 ---
 
-## 🏋️ Reproducible Training
+## Reproducible Training
 
 Models are **generated, not committed** — regenerate them deterministically
 (seed=42) along with a `metrics.json` provenance manifest (dataset SHA-256,
@@ -171,7 +171,7 @@ python -m backend.train --dataset backend/dga_dataset.csv
 Artifacts land in `backend/models/` (see [`backend/models/README.md`](backend/models/README.md)).
 The backend also auto-trains on first request if the directory is empty.
 
-## 🔬 Reproducible Evaluation
+## Reproducible Evaluation
 
 ```bash
 # Honest hold-out + 5-fold CV + cross-dataset generalization
@@ -179,7 +179,7 @@ python -m backend.evaluate --dataset data/dns_exfiltration_dataset.csv --cross b
 python -m backend.evaluate --dataset backend/dga_dataset.csv         --cross data/dns_exfiltration_dataset.csv --plot
 ```
 
-## ✅ Tests & CI
+## Tests & CI
 
 ```bash
 cd backend && pip install pytest && pytest -q     # feature, risk-engine, ML-contract tests
@@ -190,7 +190,7 @@ Both suites run on every push and PR — see [`.github/workflows/ci.yml`](.githu
 
 ---
 
-## 🔌 API Reference
+## API Reference
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
@@ -211,7 +211,7 @@ Both suites run on every push and PR — see [`.github/workflows/ci.yml`](.githu
 
 ---
 
-## 🛡️ Threat Coverage (MITRE ATT&CK)
+## Threat Coverage (MITRE ATT&CK)
 
 | Threat class | Detection approach | ATT&CK |
 | --- | --- | --- |
@@ -222,7 +222,7 @@ Both suites run on every push and PR — see [`.github/workflows/ci.yml`](.githu
 
 ---
 
-## 🔧 Tech Stack
+## Tech Stack
 
 **Backend** Python · FastAPI · Uvicorn · SQLAlchemy · SQLite ·
 **ML** scikit-learn (Random Forest, Isolation Forest) · NumPy · Pandas · SHAP ·
@@ -234,7 +234,7 @@ Both suites run on every push and PR — see [`.github/workflows/ci.yml`](.githu
 
 ---
 
-## 📁 Repository Layout
+## Repository Layout
 
 ```
 backend/     FastAPI service, feature extractor, ML models, risk engine, SOAR, evaluate.py
@@ -246,7 +246,7 @@ data/        Sample / bundled datasets
 
 ---
 
-## 📝 License & Attribution
+## License & Attribution
 
 BSD 3-Clause — see [LICENSE](LICENSE). Third-party components are credited in
 [THIRD_PARTY.md](THIRD_PARTY.md).

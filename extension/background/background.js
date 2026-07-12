@@ -38,7 +38,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         const tx = database.transaction("dns_events", "readwrite");
         const store = tx.objectStore("dns_events");
         const cutoff = Date.now() - (24 * 60 * 60 * 1000);
-        
+
         const request = store.openCursor();
         request.onsuccess = (e) => {
             const cursor = e.target.result;
@@ -114,11 +114,11 @@ chrome.webRequest.onBeforeRequest.addListener(
     (details) => {
         const url = new URL(details.url);
         const domain = url.hostname;
-        
+
         // CLEANUP: Ignore internal chrome pages and the extension's own ID noise
         if (!url.protocol.startsWith('http')) return;
         if (domain === chrome.runtime.id) return;
-        
+
         // Only analyze main_frame navigations (the actual websites the user visits)
         if (details.type === "main_frame" && !recentDomains.has(domain) && !whitelistedDomains.has(domain)) {
             recentDomains.add(domain);
@@ -136,14 +136,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
         try {
             const url = new URL(changeInfo.url);
             const domain = url.hostname;
-            
+
             if (!url.protocol.startsWith('http')) return;
             if (domain === chrome.runtime.id) return;
-            
+
             if (!recentDomains.has(domain) && !whitelistedDomains.has(domain)) {
                 recentDomains.add(domain);
                 setTimeout(() => recentDomains.delete(domain), 30000); // 30s de-duplication
-                
+
                 processDomainAsync(domain, {
                     url: changeInfo.url,
                     tabId: tabId,
@@ -220,7 +220,7 @@ async function askGroqForScore(domain, features) {
         const data = await response.json();
         const text = data.choices[0].message.content;
         const result = JSON.parse(text.trim());
-        
+
         // ML Enhancement: Blend LLM score with structural math for ultra-realistic floats
         const baseRisk = (features.entropy * 15) + (features.digit_ratio * 40);
         const realisticScore = (result.score * 0.5) + (baseRisk * 0.5) + (Math.random() * 5);
@@ -262,7 +262,7 @@ async function askBackendForAnalysis(domain) {
 async function processDomainAsync(domain, details) {
     const features = extractFeatures(domain);
     const eventId = Date.now() + "_" + Math.floor(Math.random() * 1000000);
-    
+
     // 1. INSTANT LOCAL ASSESSMENT (for immediate notification)
     const localScoreData = calculateFallbackScore(features, domain);
     const instantEvent = {
@@ -279,10 +279,10 @@ async function processDomainAsync(domain, details) {
         tier: determineTier(localScoreData.final_score),
         detailsType: details.type
     };
-    
+
     // Save locally immediately
     saveEvent(instantEvent);
-    
+
     // Show the notification IMMEDIATELY
     handleSOAR(instantEvent);
     chrome.runtime.sendMessage({ type: "DNS_EVENT", payload: instantEvent }).catch(() => {});
@@ -294,12 +294,12 @@ async function processDomainAsync(domain, details) {
     (async () => {
         let refinedEvent = null;
         const backendData = await askBackendForAnalysis(domain);
-        
+
         if (backendData) {
             // Map real backend ML features, risk scores and SHAP explainability
             const rawScore = backendData.risk_score !== undefined ? backendData.risk_score : (backendData.confidence * 100);
             const score = Math.min(Math.max(rawScore, 0), 100);
-            
+
             refinedEvent = {
                 ...instantEvent,
                 ml_score: backendData.confidence || instantEvent.ml_score,
@@ -313,9 +313,9 @@ async function processDomainAsync(domain, details) {
             const aiScoreData = await askGroqForScore(domain, features);
             if (aiScoreData) {
                 const refinedScore = aiScoreData.final_score;
-                refinedEvent = { 
-                    ...instantEvent, 
-                    ml_score: aiScoreData.ml_score, 
+                refinedEvent = {
+                    ...instantEvent,
+                    ml_score: aiScoreData.ml_score,
                     final_score: refinedScore,
                     shap_reason: aiScoreData.shap_reason,
                     tier: determineTier(refinedScore)
@@ -365,7 +365,7 @@ function handleSOAR(event) {
             blockDomain(event.domain);
         }
     }
-    
+
     if ((event.tier === "CRITICAL" || event.tier === "HIGH") && event.tabId !== -1) {
         chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
         chrome.action.setBadgeText({ text: "!" });
@@ -410,10 +410,10 @@ function blockDomain(domain) {
     // Use deterministic IDs based on domain name (must stay within 1-1,000,000)
     const ruleId1 = generateRuleId(domain, 0);
     const ruleId2 = generateRuleId(domain, 1);
-    
+
     // Use wildcards/|| for robust blocking across subdomains and paths
     const filter = `||${domain}`;
-    
+
     try {
         chrome.declarativeNetRequest.updateDynamicRules({
             removeRuleIds: [ruleId1, ruleId2],
@@ -421,17 +421,17 @@ function blockDomain(domain) {
                 id: ruleId1,
                 priority: 1,
                 action: { type: "block" },
-                condition: { 
-                    urlFilter: filter, 
-                    resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "script", "image", "stylesheet", "media", "websocket", "other"] 
+                condition: {
+                    urlFilter: filter,
+                    resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "script", "image", "stylesheet", "media", "websocket", "other"]
                 }
             }, {
                 id: ruleId2,
                 priority: 1,
                 action: { type: "block" },
-                condition: { 
-                    urlFilter: `*://${domain}/*`, 
-                    resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "script", "image"] 
+                condition: {
+                    urlFilter: `*://${domain}/*`,
+                    resourceTypes: ["main_frame", "sub_frame", "xmlhttprequest", "script", "image"]
                 }
             }]
         });
@@ -472,15 +472,15 @@ function blockDomain(domain) {
 function allowDomain(domain) {
     // Add to whitelist
     whitelistedDomains.add(domain);
-    
+
     // Save whitelist to persistent storage
     chrome.storage.local.set({ whitelistedDomains: Array.from(whitelistedDomains) });
     console.log(`[Allow] Added ${domain} to whitelist`);
-    
+
     // Get the same deterministic IDs that were used to block
     const ruleId1 = generateRuleId(domain, 0);
     const ruleId2 = generateRuleId(domain, 1);
-    
+
     // Remove block rules using the same deterministic IDs
     try {
         chrome.declarativeNetRequest.updateDynamicRules({
@@ -490,10 +490,10 @@ function allowDomain(domain) {
     } catch (e) {
         console.error(`Failed to remove rules for ${domain}:`, e);
     }
-    
+
     // Remove from recentDomains so it can be re-analyzed if visited again
     recentDomains.delete(domain);
-    
+
     // Update event tier in IndexedDB
     dbPromise.then((database) => {
         if (!database) return;
@@ -557,7 +557,7 @@ function updateBadgeForTab(tabId) {
                 return;
             }
             const domain = url.hostname;
-            
+
             dbPromise.then((database) => {
                 if (!database) return;
                 const tx = database.transaction("dns_events", "readonly");
@@ -568,7 +568,7 @@ function updateBadgeForTab(tabId) {
                     const ev = all
                         .filter(e => isDomainMatch(e.domain, domain))
                         .sort((a, b) => b.timestamp - a.timestamp)[0];
-                        
+
                     if (ev) {
                         if (['CRITICAL', 'BLOCK', 'HIGH'].includes(ev.tier)) {
                             chrome.action.setBadgeText({ text: "!", tabId });
@@ -577,7 +577,7 @@ function updateBadgeForTab(tabId) {
                             chrome.action.setBadgeText({ text: "!", tabId });
                             chrome.action.setBadgeBackgroundColor({ color: "#f97316", tabId });
                         } else {
-                            chrome.action.setBadgeText({ text: "✓", tabId });
+                            chrome.action.setBadgeText({ text: "", tabId });
                             chrome.action.setBadgeBackgroundColor({ color: "#10b981", tabId });
                         }
                     } else {

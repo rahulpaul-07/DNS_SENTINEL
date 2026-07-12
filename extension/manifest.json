@@ -2,7 +2,7 @@
   "name": "DNSentinel",
   "version": "1.0.0",
   "manifest_version": 3,
-  "description": "AI-powered DNS threat detection and exfiltration prevention.",
+  "description": "ML-based DNS threat detection and exfiltration monitoring.",
   "permissions": [
     "declarativeNetRequest",
     "webRequest",

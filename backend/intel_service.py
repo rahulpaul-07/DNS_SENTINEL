@@ -26,7 +26,7 @@ class IntelService:
         self.vt_key = os.getenv("VIRUSTOTAL_API_KEY")
         self.abuseipdb_key = os.getenv("ABUSEIPDB_API_KEY")
         self.otx_key = os.getenv("OTX_API_KEY")
-        
+
         # Redis Cache for Rate Limit Protection
         try:
             self.redis_client = redis.Redis(
@@ -38,9 +38,9 @@ class IntelService:
             )
             # Test connection
             self.redis_client.ping()
-            logger.info("⚡ Threat Intel Cache (Redis) Connected.")
+            logger.info("Threat Intel Cache (Redis) Connected.")
         except Exception as e:
-            logger.warning(f"⚠️ Redis unavailable, running without cache: {e}")
+            logger.warning(f"Redis unavailable, running without cache: {e}")
             self.redis_client = None
 
 
@@ -51,7 +51,7 @@ class IntelService:
     async def get_vt_reputation(self, target: str, type: str = "domain") -> Dict:
         """VirusTotal V3 Analysis (Async)"""
         if not self.vt_key: return {}
-        
+
         cache_key = f"vt:{target}"
         if self.redis_client:
             cached = self.redis_client.get(cache_key)
@@ -59,7 +59,7 @@ class IntelService:
 
         endpoint = f"{VT_API_URL}/{type}s/{target}"
         headers = {"x-apikey": self.vt_key}
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(endpoint, headers=headers, timeout=5.0)
@@ -75,7 +75,7 @@ class IntelService:
     async def get_abuseipdb_score(self, ip: str) -> Optional[int]:
         """AbuseIPDB IP Risk Scoring"""
         if not self.abuseipdb_key: return None
-        
+
         cache_key = f"abuseipdb:{ip}"
         if self.redis_client:
             cached = self.redis_client.get(cache_key)
@@ -83,7 +83,7 @@ class IntelService:
 
         params = {"ipAddress": ip, "maxAgeInDays": 90}
         headers = {"Key": self.abuseipdb_key, "Accept": "application/json"}
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(ABUSEIPDB_URL, headers=headers, params=params, timeout=5.0)
@@ -99,7 +99,7 @@ class IntelService:
     async def get_otx_indicators(self, domain: str) -> List[str]:
         """AlienVault OTX Threat Indicators"""
         if not self.otx_key: return []
-        
+
         cache_key = f"otx:{domain}"
         if self.redis_client:
             cached = self.redis_client.get(cache_key)
@@ -107,7 +107,7 @@ class IntelService:
 
         endpoint = f"{OTX_API_URL}/domain/{domain}/general"
         headers = {"X-OTX-API-KEY": self.otx_key}
-        
+
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(endpoint, headers=headers, timeout=5.0)
@@ -125,18 +125,18 @@ class IntelService:
         domain = domain.lower()
         score = 0
         tags = []
-        
+
         for tld in self.malicious_tlds:
             if domain.endswith(tld):
                 score += 20
                 tags.append(f"RiskTLD:{tld}")
                 break
-                
+
         for kw in self.malicious_keywords:
             if kw in domain:
                 score += 25
                 tags.append(f"SuspiciousKW:{kw}")
-                
+
         return {"score": score, "tags": tags}
 
     async def enrich_query(self, domain: str, source_ip: str) -> Dict:
@@ -145,25 +145,25 @@ class IntelService:
         vt_task = asyncio.create_task(self.get_vt_reputation(domain, "domain"))
         abuse_task = asyncio.create_task(self.get_abuseipdb_score(source_ip))
         otx_task = asyncio.create_task(self.get_otx_indicators(domain))
-        
+
         vt_res, abuse_score, otx_tags = await asyncio.gather(vt_task, abuse_task, otx_task)
         local_intel = self.check_local_heuristics(domain)
-        
+
         # Scoring Logic
         sources = ["Local Engine"]
         total_score = local_intel['score']
         threat_tags = local_intel['tags']
-        
+
         if vt_res.get('malicious', 0) > 0:
             total_score += 40
             sources.append("VirusTotal")
             threat_tags.append("vt_malicious")
-            
+
         if abuse_score and abuse_score > 50:
             total_score += 35
             sources.append("AbuseIPDB")
             threat_tags.append("abuseipdb_high_risk")
-            
+
         if otx_tags:
             total_score += 30
             sources.append("AlienVault OTX")
@@ -171,7 +171,7 @@ class IntelService:
 
         # High Confidence Flag
         is_malicious = total_score > 50 or "vt_malicious" in threat_tags
-        
+
         return {
             "domain": domain,
             "ip": source_ip,

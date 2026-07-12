@@ -15,7 +15,7 @@ const Popup = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [backendUrl, setBackendUrl] = useState("http://127.0.0.1:8001");
   const [groqKey, setGroqKey] = useState("");
-  
+
   const determineTier = (score) => {
     if (score > 90) return "CRITICAL";
     if (score > 80) return "BLOCK";
@@ -26,7 +26,7 @@ const Popup = () => {
   const triggerLocalCalculation = (domain, url, tabId) => {
     const features = extractFeatures(domain);
     const scoreData = calculateFallbackScore(features, domain);
-    
+
     setActiveTabEvent({
         id: "temp_" + Date.now(),
         domain,
@@ -54,13 +54,13 @@ const Popup = () => {
                     const hostname = url.hostname;
                     setActiveTabDomain(hostname);
                     setIsActiveTabSystem(false);
-                    
-                    const existing = currentEvents.find(ev => 
-                        ev.domain === hostname || 
-                        hostname.endsWith('.' + ev.domain) || 
+
+                    const existing = currentEvents.find(ev =>
+                        ev.domain === hostname ||
+                        hostname.endsWith('.' + ev.domain) ||
                         ev.domain.endsWith('.' + hostname)
                     );
-                    
+
                     if (existing) {
                         setActiveTabEvent(existing);
                     } else {
@@ -102,7 +102,7 @@ const Popup = () => {
         }
     };
   };
-  
+
   useEffect(() => {
     chrome.storage.local.get(["BACKEND_API_URL", "GROQ_API_KEY"], (result) => {
       if (result.BACKEND_API_URL) setBackendUrl(result.BACKEND_API_URL);
@@ -121,7 +121,7 @@ const Popup = () => {
           const all = getReq.result || [];
           const recent = all.sort((a,b) => b.timestamp - a.timestamp).slice(0, 20);
           setEvents(recent);
-          
+
           let blocked = 0; let alerts = 0; let max = 0;
           all.forEach(ev => {
               if (['BLOCK', 'CRITICAL', 'HIGH'].includes(ev.tier)) blocked++;
@@ -129,7 +129,7 @@ const Popup = () => {
               if (ev.final_score > max) max = ev.final_score;
           });
           setStats({ total: all.length, blocked, alerts, maxScore: max });
-          
+
           detectActiveTab(recent);
         };
       }
@@ -166,13 +166,13 @@ const Popup = () => {
               const oldEvent = prev[index];
               let blockedDiff = 0;
               let alertsDiff = 0;
-              
+
               if (['BLOCK', 'CRITICAL', 'HIGH'].includes(oldEvent.tier)) blockedDiff--;
               if (['ALERT', 'BLOCK', 'CRITICAL', 'HIGH', 'MEDIUM'].includes(oldEvent.tier)) alertsDiff--;
-              
+
               if (['BLOCK', 'CRITICAL', 'HIGH'].includes(msg.payload.tier)) blockedDiff++;
               if (['ALERT', 'BLOCK', 'CRITICAL', 'HIGH', 'MEDIUM'].includes(msg.payload.tier)) alertsDiff++;
-              
+
               return {
                 total: prevStats.total,
                 blocked: prevStats.blocked + blockedDiff,
@@ -230,7 +230,7 @@ const Popup = () => {
         </header>
 
 
-        
+
         <div className="grid grid-cols-2 gap-3 p-4 z-10">
             <div className="bg-slate-800/40 backdrop-blur-sm p-4 rounded-xl border border-slate-700/50 flex flex-col items-center shadow-lg transition-transform hover:scale-105">
                 <Activity className="w-6 h-6 text-cyan-400 mb-2 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" />
@@ -336,7 +336,7 @@ const Popup = () => {
                                             <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">AI Assessment</div>
                                             <p className="text-xs text-slate-200 leading-relaxed font-semibold">{parsed.friendly}</p>
                                         </div>
-                                        
+
                                         {parsed.pie && (
                                             <div className="pt-2 border-t border-slate-805 space-y-1">
                                                 <div className="flex justify-between items-center text-xs">
@@ -346,7 +346,7 @@ const Popup = () => {
                                                 <p className="text-[10px] text-slate-500 leading-normal">Determines operational action priority by weighting the website's threat score against the security value of this computer.</p>
                                             </div>
                                         )}
-                                        
+
                                         {parsed.technical && (
                                             <details className="pt-2 border-t border-slate-850 group">
                                                 <summary className="text-[10px] font-bold text-slate-500 uppercase tracking-widest cursor-pointer select-none hover:text-slate-400 transition-colors flex justify-between items-center list-none">
@@ -367,28 +367,28 @@ const Popup = () => {
                                 if (response && response.status === "allowed") {
                                     const toast = document.createElement('div');
                                     toast.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#10b981;color:white;padding:1rem;border-radius:8px;font-size:14px;font-weight:bold;z-index:1000';
-                                    toast.textContent = `✓ ${selectedEvent.domain} allowed`;
+                                    toast.textContent = `${selectedEvent.domain} allowed`;
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 2000);
                                 }
                                 setSelectedEvent(null);
                             });
                         }} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow-lg text-sm">
-                            ✓ Allow
+                            Allow
                         </button>
                         <button onClick={() => {
                             chrome.runtime.sendMessage({ type: "BLOCK_DOMAIN", domain: selectedEvent.domain }, (response) => {
                                 if (response && response.status === "blocked") {
                                     const toast = document.createElement('div');
                                     toast.style.cssText = 'position:fixed;bottom:20px;left:20px;background:#dc2626;color:white;padding:1rem;border-radius:8px;font-size:14px;font-weight:bold;z-index:1000';
-                                    toast.textContent = `✕ ${selectedEvent.domain} blocked`;
+                                    toast.textContent = `${selectedEvent.domain} blocked`;
                                     document.body.appendChild(toast);
                                     setTimeout(() => toast.remove(), 2000);
                                 }
                                 setSelectedEvent(null);
                             });
                         }} className="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200 shadow-lg text-sm">
-                            ✕ Block
+                            Block
                         </button>
                     </div>
                 </div>
@@ -404,35 +404,35 @@ const Popup = () => {
                             <h3 className="font-bold text-white text-lg">Extension Settings</h3>
                         </div>
                     </div>
-                    
+
                     <div className="p-5 flex-1 overflow-y-auto space-y-6 text-sm">
                         <div className="flex flex-col gap-2">
                             <label className="text-slate-300 font-semibold">Backend Server URL</label>
-                            <input 
-                                type="text" 
-                                value={backendUrl} 
-                                onChange={(e) => setBackendUrl(e.target.value)} 
-                                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-white font-mono outline-none focus:border-cyan-400 transition-colors w-full box-border" 
-                                placeholder="http://127.0.0.1:8001" 
+                            <input
+                                type="text"
+                                value={backendUrl}
+                                onChange={(e) => setBackendUrl(e.target.value)}
+                                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-white font-mono outline-none focus:border-cyan-400 transition-colors w-full box-border"
+                                placeholder="http://127.0.0.1:8001"
                             />
                             <p className="text-[11px] text-slate-500 leading-normal">Specify the URL of the FastAPI machine learning inference engine. Can be hosted locally or on a cloud server.</p>
                         </div>
 
                         <div className="flex flex-col gap-2">
                             <label className="text-slate-300 font-semibold">Groq API Key</label>
-                            <input 
-                                type="password" 
-                                value={groqKey} 
-                                onChange={(e) => setGroqKey(e.target.value)} 
-                                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-white font-mono outline-none focus:border-cyan-400 transition-colors w-full box-border" 
-                                placeholder="gsk_..." 
+                            <input
+                                type="password"
+                                value={groqKey}
+                                onChange={(e) => setGroqKey(e.target.value)}
+                                className="bg-slate-800/50 border border-slate-700/50 rounded-lg px-3.5 py-2.5 text-white font-mono outline-none focus:border-cyan-400 transition-colors w-full box-border"
+                                placeholder="gsk_..."
                             />
                             <p className="text-[11px] text-slate-500 leading-normal">Your personal Groq API Key. Used as a direct LLM fallback for XAI (Explainable AI) analysis if the backend server is temporarily unreachable.</p>
                         </div>
                     </div>
 
                     <div className="border-t border-slate-800/80 bg-slate-900/90 p-4 flex gap-3 z-10">
-                        <button 
+                        <button
                             onClick={() => {
                                 chrome.storage.local.set({
                                     BACKEND_API_URL: backendUrl,
@@ -440,7 +440,7 @@ const Popup = () => {
                                 }, () => {
                                     setShowSettings(false);
                                 });
-                            }} 
+                            }}
                             className="flex-1 bg-sky-600 hover:bg-sky-700 text-white font-bold py-2.5 px-4 rounded-lg cursor-pointer transition-all duration-200 shadow-md hover:scale-[1.02]"
                         >
                             Save Settings
@@ -449,7 +449,7 @@ const Popup = () => {
                 </div>
             )}
         </div>
-        
+
         {/* Live SOC Status Ticker */}
         <footer className="mt-auto bg-slate-900/80 border-t border-slate-800/80 px-4 py-2 flex items-center justify-between z-10 overflow-hidden">
             <div className="flex items-center gap-2 whitespace-nowrap animate-pulse">
@@ -461,7 +461,7 @@ const Popup = () => {
                     SEC_CORE: Active | HEURISTICS: Loaded | ML_PIE: Running | GROQ_AI: Online | TELEMETRY_STREAM: Connected
                 </div>
             </div>
-            <button 
+            <button
                 onClick={() => window.open('http://localhost:5173')}
                 className="text-[10px] font-black text-cyan-400 hover:text-cyan-300 uppercase tracking-widest transition-colors flex items-center gap-1"
             >
@@ -477,7 +477,7 @@ function parseExplanation(rawText, score = 0) {
     if (!rawText || rawText === "[Local Engine] Analyzing structural features...") {
         return { friendly: "Analyzing structural and security patterns...", technical: "", pie: "" };
     }
-    
+
     if (score < 50) {
         return {
             friendly: "This website behaves normally. Our machine learning models evaluated its name and found no malicious patterns.",
@@ -485,12 +485,12 @@ function parseExplanation(rawText, score = 0) {
             pie: ""
         };
     }
-    
+
     const parts = rawText.split('|').map(p => p.trim());
     let threatText = "";
     let shapText = "";
     let pieText = "";
-    
+
     parts.forEach(part => {
         if (part.includes("PIE Score")) {
             pieText = part;
@@ -500,7 +500,7 @@ function parseExplanation(rawText, score = 0) {
             threatText = threatText ? (threatText + " " + part) : part;
         }
     });
-    
+
     let friendly = "";
     if (threatText.includes("Standard benign DNS") || threatText.includes("Normal traffic structures") || threatText.includes("benign DNS resolution")) {
         friendly = "This website behaves normally. Our machine learning models evaluated its name and found no malicious patterns.";
@@ -518,14 +518,14 @@ function parseExplanation(rawText, score = 0) {
         if (threatText.includes("long DNS label")) {
             bulletPoints.push("The web address contains excessively long parts, which is a known method for sneaking data out.");
         }
-        
+
         if (bulletPoints.length > 0) {
             friendly = bulletPoints.join(" ");
         } else {
             friendly = "Our machine learning model detected suspicious structural deviations that may represent an active threat.";
         }
     }
-    
+
     return {
         friendly,
         technical: threatText + (shapText ? " | " + shapText : ""),

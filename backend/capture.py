@@ -38,11 +38,11 @@ class DNSCaptureEngine:
             return
 
         self._stats["packets_captured"] += 1
-        
+
         try:
             dns_layer = packet.getlayer(DNS)
             ip_layer = packet.getlayer(IP)
-            
+
             event = {
                 "timestamp": datetime.fromtimestamp(packet.time).isoformat(),
                 "src_ip": ip_layer.src,
@@ -81,7 +81,7 @@ class DNSCaptureEngine:
             if self._loop and self._broadcast_callback:
                 logger.info(f"Captured: {event['query_name']} from {event['src_ip']}")
                 asyncio.run_coroutine_threadsafe(
-                    self._broadcast_callback(event), 
+                    self._broadcast_callback(event),
                     self._loop
                 )
 
@@ -94,8 +94,8 @@ class DNSCaptureEngine:
         try:
             # On Windows, we explicitly sniff on all active interfaces to ensure coverage
             interfaces = get_if_list()
-            logger.info(f"🚀 DNS Multi-Interface Sniffer: Starting on {interfaces}")
-            
+            logger.info(f"DNS Multi-Interface Sniffer: Starting on {interfaces}")
+
             sniff(
                 iface=interfaces,
                 filter="udp port 53 or tcp port 53",
@@ -118,7 +118,7 @@ class DNSCaptureEngine:
         self._stats["start_time"] = datetime.now().isoformat()
         self._thread = threading.Thread(target=self._run_sniff, daemon=True)
         self._thread.start()
-        logger.info("🚀 DNS Capture Engine Initialized")
+        logger.info("DNS Capture Engine Initialized")
 
     def stop(self):
         """Gracefully shuts down the sniffer."""

@@ -223,7 +223,7 @@ async def analyze_dns(log: DNSLog, skip_intel: bool = False, skip_broadcast: boo
 
         return analysis_result
     except Exception as e:
-        logger.error(f"❌ Persistence Error: {e}")
+        logger.error(f"Persistence Error: {e}")
         return analysis_result
     finally:
         if not db: active_db.close()
@@ -264,9 +264,9 @@ async def process_csv_background(decoded_content: str):
                     count += 1
                     if count % 10 == 0: print(f"[*] Processed {count} rows...")
                     await asyncio.sleep(0.02) # Higher sleep for stability
-        print(f"✅ Background Ingest Finished Successfully. Processed {count} rows.")
+        print(f"Background Ingest Finished Successfully. Processed {count} rows.")
     except Exception as e:
-        print(f"❌ Background Ingest Crash: {e}")
+        print(f"Background Ingest Crash: {e}")
         logger.error(f"Background Ingest Crash: {e}")
 
 

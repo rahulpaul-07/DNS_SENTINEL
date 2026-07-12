@@ -13,12 +13,12 @@ logger = logging.getLogger("SOAR_ORCHESTRATOR")
 
 class ActionOrchestrator:
     """Enterprise-Grade SOAR (Security Orchestration, Automation, and Response) Layer"""
-    
+
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run # Safety Switch
         self.db = SessionLocal()
         self.DEFAULT_COOLDOWN_HOURS = 24
-        
+
         # Whitelist (System-Critical Essentials)
         self._ensure_whitelist_initialized()
 
@@ -41,7 +41,7 @@ class ActionOrchestrator:
     def execute_firewall_command(self, ip: str, action: str = "BLOCK") -> bool:
         """Real-world IP Enforcement via Shell/Iptables"""
         if self.dry_run:
-            logger.info(f"🔍 [DRY-RUN] Executing: iptables -A INPUT -s {ip} -j DROP")
+            logger.info(f"[DRY-RUN] Executing: iptables -A INPUT -s {ip} -j DROP")
             return True
 
         command = []
@@ -55,31 +55,31 @@ class ActionOrchestrator:
             # Check for root before attempting
             if os.name != 'nt': # Linux Target
                 subprocess.run(command, check=True, capture_output=True)
-                logger.info(f"🛡️ Firewall Rule {action} applied for {ip}")
+                logger.info(f"Firewall Rule {action} applied for {ip}")
                 return True
             else: # Windows Fallback (netsh)
                 win_cmd = f"netsh advfirewall firewall add rule name='DNSentinel_Block_{ip}' dir=in action=block remoteip={ip}"
                 if action == "UNBLOCK":
                     win_cmd = f"netsh advfirewall firewall delete rule name='DNSentinel_Block_{ip}'"
-                
+
                 subprocess.run(win_cmd, shell=True, check=True)
                 return True
         except Exception as e:
-            logger.error(f"❌ Firewall Automation Error: {e}")
+            logger.error(f"Firewall Automation Error: {e}")
             return False
 
     def sinkhole_domain(self, domain: str, action: str = "BLOCK") -> bool:
         """Simulates DNS Sinkholing by updating local resolver/hosts configuration"""
         sinkhole_ip = "127.0.0.1"
         target_file = "/etc/hosts" if os.name != "nt" else "C:\\Windows\\System32\\drivers\\etc\\hosts"
-        
+
         entry = f"{sinkhole_ip} {domain} # DNSentinel_Sinkhole\n"
-        
+
         try:
             if action == "BLOCK":
                 with open(target_file, "a") as f:
                     f.write(entry)
-                logger.info(f"🌊 Domain {domain} redirected to {sinkhole_ip}")
+                logger.info(f"Domain {domain} redirected to {sinkhole_ip}")
             else:
                 with open(target_file, "r") as f:
                     lines = f.readlines()
@@ -87,10 +87,10 @@ class ActionOrchestrator:
                     for line in lines:
                         if domain not in line:
                             f.write(line)
-                logger.info(f"🔓 Sinkhole entry removed for {domain}")
+                logger.info(f"Sinkhole entry removed for {domain}")
             return True
         except Exception as e:
-            logger.error(f"⚠️ Sinkhole Permission Error: {e}. (Require Admin/Root)")
+            logger.error(f"Sinkhole Permission Error: {e}. (Require Admin/Root)")
             return False
 
     def trigger_block(self, entity: str, reason: str, rule_type: str = "IP_BLOCK", risk_score: float = 100.0) -> Dict:
@@ -105,9 +105,9 @@ class ActionOrchestrator:
 
         expires_at = datetime.utcnow() + timedelta(hours=self.DEFAULT_COOLDOWN_HOURS)
         new_rule = SecurityRule(
-            target=entity, 
-            rule_type=rule_type, 
-            action="BLOCK", 
+            target=entity,
+            rule_type=rule_type,
+            action="BLOCK",
             reason=reason,
             risk_score=risk_score,
             expires_at=expires_at
@@ -151,14 +151,14 @@ class ActionOrchestrator:
         expired = self.db.query(SecurityRule).filter(
             and_(SecurityRule.is_active == True, SecurityRule.expires_at < datetime.utcnow())
         ).all()
-        
+
         count = 0
         for rule in expired:
             self.trigger_unblock(rule.target)
             count += 1
-            
+
         if count > 0:
-            logger.info(f"🧹 SOAR Cleanup: Revoked {count} expired security rules.")
+            logger.info(f"SOAR Cleanup: Revoked {count} expired security rules.")
 
     # Legacy method compatibility (with upgrade)
     def mark_false_positive(self, log_id: int):

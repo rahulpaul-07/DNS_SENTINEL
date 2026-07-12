@@ -33,18 +33,18 @@ export const fetchStats = async () => {
 export const uploadDataset = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    
+
     try {
         const response = await fetch(`${API_BASE}/upload`, {
             method: "POST",
             body: formData,
         });
-        
+
         if (!response.ok) {
             const text = await response.text();
             throw new Error(`Server Error (${response.status}): ${text || "Unknown error"}`);
         }
-        
+
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.indexOf("application/json") !== -1) {
             return await response.json();
@@ -66,23 +66,23 @@ export const downloadLogs = async () => {
 export const trainModel = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
-    
+
     const response = await fetch(`${API_BASE}/train`, {
         method: "POST",
         body: formData,
     });
-    
+
     if(!response.ok) {
         const err = await response.json();
         throw new Error(err.detail);
     }
-    
+
     return response.json();
 }
 
 export const connectWebSocket = (onMessage, onOpen, onClose) => {
     let socket = new WebSocket(WS_BASE);
-    
+
     socket.onopen = () => {
         if (onOpen) onOpen();
     };
@@ -95,13 +95,13 @@ export const connectWebSocket = (onMessage, onOpen, onClose) => {
             console.error("WS Parse Error:", e);
         }
     };
-    
+
     socket.onclose = () => {
         if (onClose) onClose();
         console.log("WebSocket Disconnected. Reconnecting in 3s...");
         setTimeout(() => connectWebSocket(onMessage, onOpen, onClose), 3000);
     };
-    
+
     return socket;
 };
 
@@ -113,7 +113,7 @@ export const connectSSE = (onMessage, onOpen, onError) => {
     const eventSource = new EventSource(SSE_BASE);
 
     eventSource.onopen = () => {
-        console.log("🚀 SSE Connected");
+        console.log("SSE Connected");
         if (onOpen) onOpen();
     };
 

@@ -17,7 +17,7 @@ export const CyberTableRow = ({ row, onClick }) => (
        <div className="flex items-center gap-4">
           <span className="text-[9px] font-bold bg-white/5 border border-white/5 px-2.5 py-1 rounded text-slate-500 font-mono uppercase truncate">{row.qtype}</span>
           <p className="font-mono text-xs text-white/80 truncate max-w-[250px] 2xl:max-w-[450px] tracking-tight">
-            {row.intel_hit && <span className="mr-3 animate-pulse text-amber-500">💀</span>}
+            {row.intel_hit && <span className="mr-3 animate-pulse text-amber-500"></span>}
             {row.query}
           </p>
        </div>

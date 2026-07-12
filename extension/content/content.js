@@ -49,7 +49,7 @@ function showToast(event) {
     if (existing) existing.remove();
 
     const isThreat = event.tier !== "MONITOR";
-    
+
     const container = document.createElement('div');
     container.id = 'dnsentinel-toast';
     // Premium glassmorphism styling
@@ -79,9 +79,9 @@ function showToast(event) {
 
     const header = document.createElement('div');
     header.style.cssText = `display: flex; align-items: center; gap: 10px;`;
-    
+
     const icon = document.createElement('div');
-    icon.innerHTML = isThreat ? '⚠️' : '🛡️';
+    icon.innerHTML = isThreat ? '' : '';
     icon.style.cssText = `font-size: 20px; filter: drop-shadow(0 0 8px ${isThreat ? 'rgba(239,68,68,0.5)' : 'rgba(34,211,238,0.5)'});`;
 
     const title = document.createElement('div');
@@ -113,7 +113,7 @@ function showToast(event) {
     container.appendChild(body);
 
     document.body.appendChild(container);
-    
+
     // Trigger animation
     requestAnimationFrame(() => {
         container.style.transform = 'translateX(0)';

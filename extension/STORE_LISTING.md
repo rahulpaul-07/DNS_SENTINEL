@@ -1,14 +1,14 @@
-# DNSentinel: AI-Powered Browser Security
+# DNSentinel: ML-Based Browser Security
 
 ## Chrome Web Store Description
 
-DNSentinel is an enterprise-grade DNS threat detection and exfiltration prevention platform, now available natively in your browser. 
+DNSentinel is an enterprise-grade DNS threat detection and exfiltration prevention platform, now available natively in your browser.
 
 Traditional DNS protection relies on static blacklists. DNSentinel uses advanced Machine Learning (Random Forest & Isolation Forest) combined with behavioral heuristics to detect and block zero-day threats, DNS tunneling, and Domain Generation Algorithms (DGAs) in real-time.
 
 **Key Features:**
 - **Zero-Trust DNS Analysis:** Analyzes the entropy, character density, and structural characteristics of every domain you connect to.
-- **AI-Powered (Native Bridge):** Optionally connects to a local Python Native Messaging Host to run heavy ML models without sending data to the cloud.
+- **ML (Native Bridge):** Optionally connects to a local Python Native Messaging Host to run heavy ML models without sending data to the cloud.
 - **Offline Fallback:** Features a robust JS heuristic engine that provides protection even if the Native Host is disconnected.
 - **SOAR Orchestration:** Automatically categorizes threats into Monitor, Alert, Block, or Critical tiers, taking immediate action to protect your session.
 - **XAI Explainability:** Understand exactly *why* a domain was blocked with SHAP (SHapley Additive exPlanations).

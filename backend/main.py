@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI):
     maintenance_task = asyncio.create_task(soar_maintenance())
     yield
     maintenance_task.cancel()
-    logger.info("🛑 DNSentinel background tasks: SHUTDOWN")
+    logger.info("DNSentinel background tasks: SHUTDOWN")
 
 
 app = FastAPI(
@@ -67,7 +67,7 @@ for _module in (core, analysis, ingest, alerts, soar, traffic, export):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    logger.error(f"🚨 CRITICAL_SERVER_FAULT: {str(exc)}", exc_info=True)
+    logger.error(f"CRITICAL_SERVER_FAULT: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
         content={"message": "Internal SOAR Orchestration Fault", "details": str(exc)},
