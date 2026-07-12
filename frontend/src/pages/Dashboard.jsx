@@ -237,7 +237,7 @@ const Dashboard = () => {
         <div className="flex items-center h-full" style={{animation: 'tickerScroll 40s linear infinite', whiteSpace: 'nowrap', paddingLeft: '120px'}}>
           {[
             "SYSTEM: DNSentinel Threat Intelligence Platform — All systems nominal",
-            "MODEL: 22-vector ensemble at 99.98% classification fidelity",
+            "MODEL: 22-feature RF + Isolation Forest ensemble — held-out F1 0.99 (see MODEL_CARD)",
             "SOAR: Adaptive thresholds active — mean+2sigma anomaly detection enabled",
             "ENGINE: Real-time DNS exfiltration detection is active",
             "STATUS: Live telemetry stream connected via SSE",
@@ -315,9 +315,9 @@ const Dashboard = () => {
         {/* Core Metrics Deck */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
            <StatusMetric label="Threat Signatures" value={stats.total_alerts} icon={<AlertTriangle size={24}/>} color="rose" />
-           <StatusMetric label="Protocol Throughput" value={`${(stats.total_requests/60).toFixed(2)} ms`} icon={<Activity size={24}/>} color="cyan" />
-           <StatusMetric label="Intelligence Fidelity" value="99.98%" icon={<Zap size={24}/>} color="purple" />
-           <StatusMetric label="Ensemble Nodes" value="22 Vector" icon={<Cpu size={24}/>} color="amber" />
+           <StatusMetric label="Queries Analyzed" value={stats.total_requests} icon={<Activity size={24}/>} color="cyan" />
+           <StatusMetric label="Model F1 (held-out)" value="0.99" icon={<Zap size={24}/>} color="purple" />
+           <StatusMetric label="Feature Vector" value="22-D" icon={<Cpu size={24}/>} color="amber" />
         </div>
 
         {viewMode === "Topology" ? (
