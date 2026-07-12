@@ -159,10 +159,13 @@ async def generate_pdf_report(log_id: int):
             pdf.cell(0, 10, "3. MITRE ATT&CK Mapping", ln=True)
             pdf.set_font("Arial", '', 10)
             for tactic, technique in log.mitre_data.items():
+                # mitre_data maps technique-id -> {Name, Description, Mitigation};
+                # render the human-readable name (fall back to str for older records).
+                label = technique.get("Name", "") if isinstance(technique, dict) else str(technique)
                 pdf.set_font("Arial", 'B', 10)
                 pdf.cell(40, 6, f"{tactic}:")
                 pdf.set_font("Arial", '', 10)
-                pdf.cell(0, 6, technique, ln=True)
+                pdf.cell(0, 6, label, ln=True)
 
         # Footer
         pdf.set_y(-30)
