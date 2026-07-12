@@ -14,8 +14,10 @@ from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_sc
 # Directories
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "dns_exfiltration_dataset.csv")
-MODEL_PATH = os.path.join(BASE_DIR, "dns_pipeline_model.joblib")
-SCALER_PATH = os.path.join(BASE_DIR, "dns_pipeline_scaler.joblib")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
+MODEL_PATH = os.path.join(MODELS_DIR, "dns_pipeline_model.joblib")
+SCALER_PATH = os.path.join(MODELS_DIR, "dns_pipeline_scaler.joblib")
 
 def load_and_validate_data():
     print("[*] Loading dataset...")
