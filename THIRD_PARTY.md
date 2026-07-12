@@ -21,8 +21,7 @@ extension (`extension/`), and the Zeek→pipeline ingestion glue
   exfiltration signals/logs, which `backend/ingest_zeek.py` normalizes and
   feeds into the DNSentinel feature extractor and risk engine. The integration,
   normalization, and everything downstream are original.
-- **Modifications:** <!-- TODO(author): list any edits you made to the upstream
-  Zeek scripts here, or write "used unmodified" if you did not change them. -->
+- **Modifications:** Used as an external dependency � the sensor was imported wholesale and is not modified within this project; all customization lives in the downstream integration (`backend/ingest_zeek.py`), not in the Zeek scripts.
 
 If you are evaluating this project: the sensor tier is a deliberately reused,
 production-grade IDS package — reusing battle-tested detection instead of
