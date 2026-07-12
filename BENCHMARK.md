@@ -108,3 +108,32 @@ python -m backend.benchmarks.run_benchmark --benchmark data/real_benchmark.csv
 `run_benchmark` reports per-family recall for whatever families appear in the
 data, so on the real feeds you get recall broken out by actual DGA family
 (cryptolocker, ramnit, suppobox, matsnu, ...).
+
+## Results on real public data (Netlab 360 / chrmor, 25 DGA families)
+
+Trained on the bundled data, evaluated on 50,000 real domains (25,000 Alexa benign +
+25,000 DGA across 25 families from the Netlab 360 Opendata Project, via
+chrmor/DGA_domains_dataset). Reproduce with `run_real_benchmark.py`.
+
+**Cross-domain (bundled model -> real public data):**
+
+| Accuracy | Precision | Recall | F1 | ROC-AUC |
+| --- | --- | --- | --- | --- |
+| 0.625 | 0.604 | 0.725 | 0.659 | 0.741 |
+
+**In-benchmark (stratified 80/20 on the real data):**
+
+| Accuracy | Precision | Recall | F1 | ROC-AUC |
+| --- | --- | --- | --- | --- |
+| 0.859 | 0.888 | 0.821 | 0.853 | 0.931 |
+
+**Per-family recall (cross-domain) - real strengths and blind spots:**
+
+- Caught (recall = 1.00): corebot, cryptolocker, emotet, gozi, matsnu, murofet, padcrypt, qadars, ramdo, ranbyus, rovnix, tinba
+- Partial: symmi 0.97, nymaim 0.83, dircrypt 0.77, ramnit 0.76, necurs 0.71, suppobox 0.67, kraken 0.51, pykspa 0.50
+- Missed: vawtrak 0.22, conficker 0.09, fobber 0.01, simda 0.01, pushdo 0.00
+
+The consistent misses (conficker, fobber, simda, pushdo, vawtrak) generate short and/or
+low-entropy, pronounceable domains that resemble benign structure, so entropy and n-gram
+features alone cannot separate them. This is the concrete case for adding a character-level
+sequence model and per-family thresholds - the documented next step.
