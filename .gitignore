@@ -41,3 +41,10 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Runtime state / logs that must not be committed
+.log
+*.log
+backend/firewall_blocklist.json
+backend/seed_res.txt
+data/*.log
