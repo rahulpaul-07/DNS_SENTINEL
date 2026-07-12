@@ -1,8 +1,7 @@
-torch>=2.0.0
-torchvision
-torchaudio
-pandas
-numpy
-scikit-learn
-joblib
-matplotlib
+# Optional deep-learning extra for the character-level DGA model (backend/dga_model.py).
+# The app runs fine without it: model.py guards the import and skips the DL DGA score
+# when torch is unavailable. Install alongside the base deps:
+#   pip install -r requirements.txt -r requirements-ml.txt
+#
+# Choose the build matching your platform/CUDA: https://pytorch.org/get-started/locally/
+torch==2.3.1
