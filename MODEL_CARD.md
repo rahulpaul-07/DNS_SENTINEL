@@ -39,10 +39,12 @@ accuracy.
 
 ## Evaluation
 
-Reproduce:
+Reproduce (train writes a `metrics.json` provenance manifest; evaluate prints
+honest hold-out + cross-dataset numbers):
 
 ```bash
 pip install -r backend/requirements.txt
+python -m backend.train                                                # regenerate models + metrics.json
 python -m backend.evaluate --dataset data/dns_exfiltration_dataset.csv --cross backend/dga_dataset.csv
 python -m backend.evaluate --dataset backend/dga_dataset.csv         --cross data/dns_exfiltration_dataset.csv
 ```

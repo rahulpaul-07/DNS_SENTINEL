@@ -145,6 +145,20 @@ cd frontend && npm install && npm run dev # http://localhost:5173
 
 ---
 
+## 🏋️ Reproducible Training
+
+Models are **generated, not committed** — regenerate them deterministically
+(seed=42) along with a `metrics.json` provenance manifest (dataset SHA-256,
+library versions, hyperparameters, held-out metrics):
+
+```bash
+python -m backend.train                                 # bundled exfil dataset
+python -m backend.train --dataset backend/dga_dataset.csv
+```
+
+Artifacts land in `backend/models/` (see [`backend/models/README.md`](backend/models/README.md)).
+The backend also auto-trains on first request if the directory is empty.
+
 ## 🔬 Reproducible Evaluation
 
 ```bash
