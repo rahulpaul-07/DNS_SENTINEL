@@ -173,4 +173,60 @@ class ActionOrchestrator:
             return {"status": "RETRAINING_ACK", "log_id": log_id}
         return {"status": "NOT_FOUND"}
 
+
+    def generate_incident_report(self, log_id: int) -> Optional[str]:
+        """Build a Markdown SOC incident report for a single audit-log record.
+
+        Returns None when the record does not exist so the caller can 404.
+        """
+        log = self.db.query(DNSAuditLog).filter(DNSAuditLog.id == log_id).first()
+        if not log:
+            return None
+
+        ts = log.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC") if log.timestamp else "N/A"
+        lines = [
+            f"# DNSentinel Incident Report - SOC-{log.id}",
+            "",
+            "## 1. Summary",
+            f"- **Incident ID:** SOC-{log.id}",
+            f"- **Timestamp:** {ts}",
+            f"- **Source IP:** {log.source_ip}",
+            f"- **Query:** `{log.query}`",
+            f"- **Record Type:** {log.qtype}",
+            f"- **Classification:** {log.prediction}",
+            f"- **Risk Score:** {log.risk_score} ({log.risk_level})",
+            f"- **Priority:** {log.priority} ({log.priority_score})",
+            f"- **Blocked:** {'Yes' if log.is_blocked else 'No'}",
+            "",
+            "## 2. Technical Analysis",
+            log.explanation or "No detailed explanation recorded.",
+            "",
+            "## 3. MITRE ATT&CK Mapping",
+        ]
+        if log.mitre_data:
+            for tactic, technique in log.mitre_data.items():
+                if isinstance(technique, dict):
+                    name = technique.get("Name", "")
+                    desc = technique.get("Description", "")
+                    mitigation = technique.get("Mitigation", "")
+                    lines.append(f"- **{tactic} - {name}**")
+                    if desc:
+                        lines.append(f"  - _Detection:_ {desc}")
+                    if mitigation:
+                        lines.append(f"  - _Mitigation:_ {mitigation}")
+                else:
+                    lines.append(f"- **{tactic}:** {technique}")
+        else:
+            lines.append("- No MITRE techniques mapped for this event.")
+        lines += [
+            "",
+            "## 4. Recommended Actions",
+            "- Review the source endpoint for related activity.",
+            "- Confirm containment (block/sinkhole) if malicious.",
+            "- Mark as false positive if benign to feed the analyst feedback loop.",
+            "",
+            "_Generated automatically by DNSentinel SOAR._",
+        ]
+        return "\n".join(lines)
+
 orchestrator = ActionOrchestrator(dry_run=True) # Default to dry-run for safety
