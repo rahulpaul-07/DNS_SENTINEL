@@ -80,10 +80,11 @@ def main():
 
     # 3. PER-FAMILY recall under the cross-domain model + benign FP rate.
     print("\nper-family recall (cross-domain model):")
-    for f in ["random", "arithmetic", "hex", "dictionary"]:
-        m = fam == f
+    mal_families = sorted(set(fam[yb == 1]))
+    for f in mal_families:
+        m = (fam == f) & (yb == 1)
         if m.sum():
-            print(f"  {f:<12} recall={recall_score(yb[m], yp[m], zero_division=0):.3f}  (n={int(m.sum())})")
+            print(f"  {str(f):<14} recall={recall_score(yb[m], yp[m], zero_division=0):.3f}  (n={int(m.sum())})")
     bm = fam == "benign"
     if bm.sum():
         fp = (yp[bm] == 1).mean()
