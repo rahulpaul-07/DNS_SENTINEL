@@ -171,7 +171,7 @@ async def generate_pdf_report(log_id: int):
         pdf.set_y(-30)
         pdf.set_font("Arial", 'I', 8)
         pdf.set_text_color(128, 128, 128)
-        pdf.cell(0, 10, "This report is cryptographically signed and archived for compliance. | DNSentinel Enterprise XDR", align='C')
+        pdf.cell(0, 10, "DNSentinel - SOC Incident Report", align='C')
 
         from fastapi.responses import Response
         return Response(content=bytes(pdf.output()), media_type="application/pdf", headers={

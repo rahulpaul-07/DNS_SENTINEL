@@ -106,7 +106,7 @@ Once the final score is calculated, it is mapped to a priority tier. Each tier t
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
 │                                                                        │
-│  [85 - 100]  CRITICAL  ──▶ Auto-Containment / SOAR Kernel-level Block│
+│  [85 - 100]  CRITICAL  ──▶ Auto-Containment / SOAR Firewall Block│
 │                                                                        │
 │  [70 - 84]   HIGH      ──▶ Analyst Alert Feed + DNS Sinkholing      │
 │                                                                        │
@@ -119,7 +119,7 @@ Once the final score is calculated, it is mapped to a priority tier. Each tier t
 
 | Score Range | Priority Level | UI/Analyst Action | Automatic SOAR Playbook |
 | :---: | :---: | :--- | :--- |
-| **$\ge 85$** | **CRITICAL** | Red badge in Triage Feed. Immediate workstation popup. | **Auto-block** originating IP via local kernel-level firewall rules. Restrict network egress. |
+| **$\ge 85$** | **CRITICAL** | Red badge in Triage Feed. Immediate workstation popup. | **Auto-block** originating IP via generated firewall/sinkhole rules (24h auto-expiry). Restrict network egress. |
 | **$70 \text{ to } 84$** | **HIGH** | Orange badge. Prioritized in analyst workbook. | **DNS Sinkholing** for the targeted domain (redirects to loopback `127.0.0.1`). |
 | **$50 \text{ to } 69$** | **MEDIUM** | Yellow badge. Appears in standard SOC feed. | Queue for human-in-the-loop audit. Log parameters for ML retraining cycles. |
 | **$< 50$** | **LOW / MONITOR** | Green badge. Filtered from primary triage list. | Allowed. Logged inside SQLite table (`dns_logs`) for baseline reference. |

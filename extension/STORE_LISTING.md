@@ -2,7 +2,7 @@
 
 ## Chrome Web Store Description
 
-DNSentinel is an enterprise-grade DNS threat detection and exfiltration prevention platform, now available natively in your browser.
+DNSentinel is an ML-based DNS threat detection and exfiltration monitoring tool, available natively in your browser.
 
 Traditional DNS protection relies on static blacklists. DNSentinel uses advanced Machine Learning (Random Forest & Isolation Forest) combined with behavioral heuristics to detect and block zero-day threats, DNS tunneling, and Domain Generation Algorithms (DGAs) in real-time.
 

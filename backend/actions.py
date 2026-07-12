@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SOAR_ORCHESTRATOR")
 
 class ActionOrchestrator:
-    """Enterprise-Grade SOAR (Security Orchestration, Automation, and Response) Layer"""
+    """SOAR (Security Orchestration, Automation, and Response) layer."""
 
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run # Safety Switch

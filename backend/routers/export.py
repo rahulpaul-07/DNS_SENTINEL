@@ -58,7 +58,7 @@ async def export_pdf_report():
         pdf.set_y(100)
         pdf.set_font("Arial", 'B', 36)
         pdf.set_text_color(0, 242, 255) # #00f2ff
-        pdf.cell(0, 20, "DNSENTINEL X-DR", ln=True, align='C')
+        pdf.cell(0, 20, "DNSENTINEL", ln=True, align='C')
 
         pdf.set_font("Arial", 'B', 18)
         pdf.set_text_color(255, 255, 255)
