@@ -1,12 +1,12 @@
 # Third-Party Components & Attribution
 
 DNSentinel integrates one third-party open-source component. It is credited
-here in full. All other code in this repository — the FastAPI backend and ML
+here in full. All other code in this repository â€” the FastAPI backend and ML
 pipeline (`backend/`), the React SOC dashboard (`frontend/`), the Chrome MV3
-extension (`extension/`), and the Zeek→pipeline ingestion glue
-(`backend/ingest_zeek.py`) — is original work by the repository author.
+extension (`extension/`), and the Zeekâ†’pipeline ingestion glue
+(`backend/ingest_zeek.py`) â€” is original work by the repository author.
 
-## Zeek DNS-exfiltration sensor — `scripts/Exfiltration/exfil_detect/`
+## Zeek DNS-exfiltration sensor â€” `scripts/Exfiltration/exfil_detect/`
 
 - **What it is:** a Zeek (formerly Bro) network-security-monitor package that
   detects DNS-based data exfiltration using per-connection statistical
@@ -21,10 +21,10 @@ extension (`extension/`), and the Zeek→pipeline ingestion glue
   exfiltration signals/logs, which `backend/ingest_zeek.py` normalizes and
   feeds into the DNSentinel feature extractor and risk engine. The integration,
   normalization, and everything downstream are original.
-- **Modifications:** Used as an external dependency � the sensor was imported wholesale and is not modified within this project; all customization lives in the downstream integration (`backend/ingest_zeek.py`), not in the Zeek scripts.
+- **Modifications:** Used as an external dependency - the sensor was imported wholesale and is not modified within this project; all customization lives in the downstream integration (`backend/ingest_zeek.py`), not in the Zeek scripts.
 
 If you are evaluating this project: the sensor tier is a deliberately reused,
-production-grade IDS package — reusing battle-tested detection instead of
+production-grade IDS package â€” reusing battle-tested detection instead of
 reinventing it is the intended design. The novel contribution is the end-to-end
 platform (ML ensemble, adaptive risk scoring, SOAR, SOC dashboard, browser
 telemetry) built around it.
