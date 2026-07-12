@@ -87,3 +87,7 @@ Benchmark against public corpora (CIC-Bell-DNS-EXF-2021 for exfil; Bambenek/
 UMUDGA/DGArchive vs. Tranco for DGA), report per-DGA-family recall, calibrate
 the decision threshold to a target false-positive budget, and track metric
 drift in CI.
+
+## Family-stratified benchmark
+
+A larger (12,000-domain) DGA benchmark with per-family recall lives in [BENCHMARK.md](BENCHMARK.md) and `backend/benchmarks/`. Headline: cross-domain F1 0.79 (AUC 0.92); dictionary-DGA recall 0.67 is the hard case; benign false-positive rate falls from 39.6% to ~3.8% once the model is trained on representative data. The harness also accepts real public CSVs (CIC-Bell-DNS-EXF-2021 / Tranco / Bambenek).

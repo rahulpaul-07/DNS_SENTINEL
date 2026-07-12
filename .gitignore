@@ -56,3 +56,7 @@ backend/models/*.joblib
 
 # Stray runtime risk config generated at repo root (canonical copy is backend/risk_baseline.yaml)
 /risk_baseline.yaml
+
+# Generated benchmark (reproduce with: python -m backend.benchmarks.generate_benchmark)
+data/dga_benchmark.csv
+backend/.venv/
