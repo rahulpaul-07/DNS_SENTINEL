@@ -18,9 +18,13 @@ except ImportError:
 
 
 
-# Paths to serialized models
-RF_MODEL_PATH = os.path.join(os.path.dirname(__file__), "dns_rf_model_v5.joblib")
-ISO_MODEL_PATH = os.path.join(os.path.dirname(__file__), "dns_iso_model_v5.joblib")
+# Paths to serialized models. Artifacts live in backend/models/ and are
+# generated reproducibly by `python -m backend.train` (they are git-ignored).
+# load_models() auto-trains them on first use if the directory is empty.
+MODELS_DIR = os.path.join(os.path.dirname(__file__), "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
+RF_MODEL_PATH = os.path.join(MODELS_DIR, "dns_rf_model.joblib")
+ISO_MODEL_PATH = os.path.join(MODELS_DIR, "dns_iso_model.joblib")
 
 
 def train_base_model():

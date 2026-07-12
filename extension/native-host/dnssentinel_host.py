@@ -10,10 +10,10 @@ import time
 
 # Pre-load models to ensure <50ms latency per request
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# Assuming the models are in the backend directory
-MODEL_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "backend"))
-RF_PATH = os.path.join(MODEL_DIR, "dns_rf_model_v5.joblib")
-ISO_PATH = os.path.join(MODEL_DIR, "dns_iso_model_v5.joblib")
+# Models are generated reproducibly into backend/models/ by `python -m backend.train`.
+MODEL_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..", "backend", "models"))
+RF_PATH = os.path.join(MODEL_DIR, "dns_rf_model.joblib")
+ISO_PATH = os.path.join(MODEL_DIR, "dns_iso_model.joblib")
 
 rf_model = None
 iso_model = None
