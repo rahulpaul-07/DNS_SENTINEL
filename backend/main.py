@@ -609,23 +609,6 @@ async def get_traffic(response: Response, limit: int = 100):
             "explanation": l.explanation
         } for l in logs]
 
-@app.post("/archive")
-async def archive_logs():
-    """Clears the active ledger to start a new forensic case."""
-    with SessionLocal() as db:
-        # Delete all records from DNSAuditLog
-        db.query(DNSAuditLog).delete()
-        db.commit()
-        
-        # Also clear in-memory caches
-        global traffic_history, alerts, ip_query_history, alert_groups
-        traffic_history.clear()
-        alerts.clear()
-        ip_query_history.clear()
-        alert_groups.clear()
-        
-    return {"status": "success", "message": "Forensic ledger cleared."}
-
 # --- SOC / SOAR Action Endpoints ---
 
 @app.post("/alerts/{log_id}/block")
@@ -973,11 +956,14 @@ async def archive_and_clear():
         db.execute(delete(SecurityRule))
         db.commit()
     
-    # Hard-Reset in-memory deques
+    # Hard-Reset in-memory deques / caches (single canonical /archive handler;
+    # a duplicate route with the same path previously shadowed this one).
+    global traffic_history, alerts, ip_query_history, alert_groups
     traffic_history.clear()
     alerts.clear()
+    ip_query_history.clear()
     alert_groups.clear()
-    
+
     return {"status": "SUCCESS", "message": "Forensic ledger truncated. Environment is now blank."}
 
 @app.get("/stats")
